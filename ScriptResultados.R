@@ -7,7 +7,9 @@
 #' output: pdf_document
 #' ---
 #' 
-#' **1.** Construcción del modelo.
+#' **1.** Distribución del modelo matemático
 #' 
-#' - $E(Y|X) = \beta_0 + \beta_1X_1$
-#' 
+#' - $\mathbb{E}[\vec{Y}|\boldsymbol{X}] = \beta_0 + \sum_{i=1}^{n}\beta_iX_{ij}$
+#'
+#'
+#' **2.** Análisis descriptivo
