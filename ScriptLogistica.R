@@ -6,13 +6,13 @@
 #' pre-establecidos mediante lineas dibujadas sobre un mapa de la localización
 #' en estudio.
 #' 
-#' - As: Nivel de concentración de arsénico en la muestra de agua.
-#' - Sb: Nivel de concentración de antimonio en la muestra de agua.
-#' - Corredor: Variable binaria indicando si la zona muestreada está (1) o no
+#' - `As`: Nivel de concentración de arsénico en la muestra de agua.
+#' - `Sb`: Nivel de concentración de antimonio en la muestra de agua.
+#' - `Corredor`: Variable binaria indicando si la zona muestreada está (1) o no
 #'   está (0) en alguno de los corredores delimitados por las lineas sobre el
 #'   mapa.
 #' 
-#' La variable respuesta fue Proximidad a un depósito de oro, y toma los valores
+#' La variable respuesta fue `Proximidad` a un depósito de oro, y toma los valores
 #' 1 o 0 según que el depósito esté próximo o esté muy lejano al lugar.
 
 
@@ -20,7 +20,6 @@
 setwd("~/Escritorio/MR/")
 load("Datos/Oro.rda")
 attach(Oro)
-
 
 ### Primer análisis descriptivo ----
 explicativas.oro <- Oro[,1:3]    # Seleccionamos las explicativas
@@ -42,6 +41,23 @@ par(old.par)
 hist(Corredor, main="Histograma de Corredor")
 
 
-# Modelo matemático ----
-#' $\mathbb{E}(Y|\vec{X})$
+### Modelo matemático ----
+#' \begin{equation} \label{logmodel}
+#' \mathbb{E}[\vec{Y}|\boldsymbol{X}] = \frac{e^{\eta}}{1 + e^{\eta}} = \frac{1}{1 + e^{-\eta}}
+#' \end{equation}
+#' 
+#' \begin{equation} \label{loglinear}
+#' \eta = \vec\beta^t\boldsymbol{X}
+#' \end{equation}
+#' 
 
+### Interpretación modelo ----
+#' ...
+
+### Inferencia ----
+#'
+ajuste <- glm(Proximidad~., data=Oro, family="binomial")
+summary(ajuste)
+
+### Bondad del ajuste ----
+#'
