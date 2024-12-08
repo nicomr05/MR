@@ -404,7 +404,24 @@ partial.r(OzonoLA)
 #' \end{equation}
 ajuste <- lm(Ozono~., data=OzonoLA)
 ajuste
+coef(ajuste)
+#' Ozono = 55.428 - 0.343*Mes* + 0.012*Diames* - 0.047*DiaSeman* - 0.0133*Pres_Alt*
+#' - 0.096*Vel_Viento* + 0.088*Humedad* + 0.1366*T_Sandburg* + 0.5598*T_ElMonte* 
+#' - 0.0006*Inv_Alt_b* + 0.0004*Grad_Pres* - 0.124*Inv_T_b* - 0.005*Visibilidad*
+( MSSR <- summary(ajuste)$sigma^2 )
+( gl.R <- ajuste$df )
+( gl.E <- ajuste$rank )
 #'
+#' ## **4.** Inferencia modelo 
+#' 
+summary(ajuste)
+#' Las únicas variables que parecen ser significativas son Mes, Humedad y T_ElMonte.
+#' También podemos considerar que son bastante significativas, pero no tanto, las 
+#' variables T_Sandburg y Pres_Alt. Por otra parte, según el coeficiente de bondad, 
+#' con este ajuste podemos explicar el 73,04% de la variabilidad de los datos. Por último, 
+#' gracias a la última linea del summary deducimos que es mejor este ajuste en comparación 
+#' al modelo que contiene únicamente el intercept, debido al p-valor < 2.2e-16. 
+#' 
 #' 
 #' 
 #' $\newline$

@@ -409,3 +409,52 @@ boxplot(Visibilidad, main = "", xlab="Visibilidad",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 par(mfrow=c(1,1))
+
+################################################################################
+## 2) CORRELACIONES
+
+# CORRELACIONES BIVARIANTES
+library(psych)
+pairs.panels(OzonoLA, smooth = TRUE, density=TRUE, digits = 2, 
+             ellipses=TRUE, method="pearson", pch = 20, 
+             lm=TRUE, cor=TRUE)
+cor(OzonoLA)
+
+# CORRELACIONES PARCIALES
+partial.r(OzonoLA)
+          
+################################################################################
+## 3) MODELO MATEMÁTICO
+ajuste <- lm(Ozono~., data=OzonoLA)
+ajuste
+coef(ajuste)
+# Ozono = 55.428 - 0.343*Mes + 0.012*Diames - 0.047*DiaSeman - 0.0133*Pres_Alt
+# - 0.096*Vel_Viento + 0.088*Humedad + 0.1366*T_Sandburg + 0.5598*T_ElMonte 
+# - 0.0006*Inv_Alt_b + 0.0004*Grad_Pres - 0.124*Inv_T_b - 0.005*Visibilidad
+( MSSR <- summary(ajuste)$sigma^2 )
+( gl.R <- ajuste$df )
+( gl.E <- ajuste$rank )
+
+################################################################################
+## 4) INFERENCIA MODELO 
+
+summary(ajuste) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
