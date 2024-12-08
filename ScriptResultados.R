@@ -404,18 +404,70 @@ partial.r(OzonoLA)
 #' \begin{equation} \label{linearmodel}
 #' \mathbb{E}(\vec{Y}|\boldsymbol{X}) = \beta_0 + \sum_{i=1}^{n}\beta_iX_{ij}
 #' \end{equation}
-ajuste <- lm(Ozono~., data=OzonoLA)
-ajuste
-coef(ajuste)
+MOD_FULL <- lm(Ozono~., data=OzonoLA)
+MOD_FULL
+coef(MOD_FULL)
 #' Ozono = 55.428 - 0.343*Mes* + 0.012*Diames* - 0.047*DiaSeman* - 0.0133*Pres_Alt*
 #' - 0.096*Vel_Viento* + 0.088*Humedad* + 0.1366*T_Sandburg* + 0.5598*T_ElMonte* 
 #' - 0.0006*Inv_Alt_b* + 0.0004*Grad_Pres* - 0.124*Inv_T_b* - 0.005*Visibilidad*
-( MSSR <- summary(ajuste)$sigma^2 )
-( gl.R <- ajuste$df )
-( gl.E <- ajuste$rank )
+( MSSR <- summary(MOD_FULL)$sigma^2 )
+( gl.R <- MOD_FULL$df )
+( gl.E <- MOD_FULL$rank )
 #'
-#' ## **4.** Inferencia modelo 
+#'
+#' ## **4.** Análisis de multicolinealidad 
 #' 
+summary(MOD_FULL) 
+#' Obtenemos que muchos de los coeficientes son no significativos, por lo que 
+#' debemos hacer una selección de las variables. 
+#' No obstante, como esto se puede deber a la presencia de multicolinealidad, 
+#' vamos a analizarla.
+#'
+#' Para ello, utilizaremos la librería "mctest", que  proporciona un análisis completo 
+#' de multicolinealidad:
+library(mctest)
+mctest(MOD_FULL, type="o")  
+#' Este test proporciona 6 medidas, de las cuales 4 indican que estamos ante un caso
+#' en el que la multicolinealidad está presente.
+#'
+#' Para solucionar esto y conseguir un ajuste correcto, sobre el que hacer inferencia
+#' debemos hacer una selección de variables.
+#'
+#'
+#' ## **5.** Selección del modelo 
+#' 
+#' Para hacer la selección del modelo, utilizaremos la selección sistemática por 
+#' STEPWISE, utilizando como criterio el AIC del modelo. Elegimos este método de 
+#' selección por ser el mejor, al permitir incluir y eliminar variables a lo largo
+#' del proceso. 
+#'
+#' Primero, definimos el modelo con solo el intercept.
+Mod_NULL <- lm(Ozono ~ 1, data = Datos) 
+#' Ahora, aplicaremos la siguiente función para obtener el modelo óptimo:
+stepMod <- step(Mod_NULL, direction = "both", trace = 1,
+                scope = list(lower = Mod_NULL, 
+                             upper = MOD_FULL) ) 
+summary((stepMod))
+#' El modelo resultante de la selección secuencial es:
+#' Ozono = 51.3444845 - 0.3324536*Mes* - 0.0134013 *Pres_Alt*
+#' + 0.0975694*Humedad* + 0.1242673*T_Sandburg* + 0.4743962*T_ElMonte* 
+#' - 0.0003211*Inv_Alt_b*
+#' 
+#' No obstante, con un 10% de significación, la variable Inv_Alt_b no es significativa,
+#' por lo que examinaremos si se debe excluir del modelo:
+ajuste_sin_inv_alt_b <- update(stepMod, .~.-Inv_Alt_b) 
+#' Lo comprobaremos con un anova de modelos anidados:
+anova(ajuste_sin_inv_alt_b, stepMod)
+#' Prueba no significativa, por lo que nos quedamos con el modelo sin la variable.
+ajuste <- ajuste_sin_inv_alt_b
+#' Comprobaremos si es mejor que el modelo completo, utilizando un anova
+#' de modelos anidados:
+anova(ajuste, MOD_FULL) 
+#' El resultado es no significativo, por lo que la selección ha merecido la pena.
+#'
+#' ## **6.** Inferencia modelo 
+#' 
+#' Ahora ya podemos comenzar la inferencia.
 summary(ajuste)
 #' Las únicas variables que parecen ser significativas son Mes, Humedad y T_ElMonte.
 #' También podemos considerar que son bastante significativas, pero no tanto, las 
@@ -424,7 +476,54 @@ summary(ajuste)
 #' gracias a la última linea del summary deducimos que es mejor este ajuste en comparación 
 #' al modelo que contiene únicamente el intercept, debido al p-valor < 2.2e-16. 
 #' 
+#'
+#' ## **7.** Validación modelo seleccionado 
 #' 
+#' Por abreviar la notación, tenemos:
+MS <- ajuste  # Ajuste modelo elegido.
+MC <- MOD_FULL # Ajuste modelo completo
+
+#' Primero, calculamos el coeficiente de robusted del ajuste:
+library(DAAG)
+( B2 <- sum(residuals(MS)^2)/press(MS) )
+#' Elevado y superior al del modelo completo
+sum(residuals(MC)^2)/press(MC) 
+
+#' Haremos una validación del tipo LOOCV (Leave One Out Cross Validation):
+
+#' Primero, para MS:
+
+class(OzonoLA) # ya es un data frame
+set.seed(5198) 
+cv_k3_MS <- cv.lm(data=OzonoLA,form.lm= formula(MS),m=length(OzonoLA))  
+#' Se calcula la raíz cuadrada de la media de los cuadrados de las diferencias entre predicciones y observaciones:
+errores <- cv_k3_MS$cvpred - cv_k3_MS$Ozono # predicho por cv - predicción real
+( error_cv_k3_MS <- sqrt(mean(errores^2)) ) # estimador RMSE (raiz media suma residuos al cuadrado)
+
+#' Finalmente, para MC:
+set.seed(5198) 
+cv_k3_MC <- cv.lm(data=OzonoLA,form.lm=formula(MC),m=length(OzonoLA))   
+errores <- cv_k3_MC$cvpred - cv_k3_MC$Ozono
+( error_cv_k3_MC <- sqrt(mean(errores^2)) )
+
+#' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
+#' 
+#' ## **8.** Análisis de residuos modelo seleccionado 
+#' 
+#'
+#' ## **9.** Análisis de influencia modelo seleccionado
+#' 
+#' 
+#' ## **10.** Estimación media condicionada y predicción 
+#' Finalmente, obtengamos el intervalo de confianza y de predicción para el nivel 
+#' de ozono medio al 95% de confianza con el modelo seleccionado con todas las 
+#' variables fijadas en su valor medio.
+
+new.dat <- data.frame(T_Sandburg = mean(T_Sandburg), Humedad = mean(Humedad), 
+                      T_ElMonte = mean(T_ElMonte), Mes = mean(Mes),
+                      Pres_Alt = mean(Pres_Alt), Inv_Alt_b = mean(Inv_Alt_b)) # tiene que aparecer valores de las vbles que están en el modelo.
+predict(ajuste, newdata = new.dat, interval="confidence", level = 0.95)
+predict(ajuste, newdata = new.dat, interval="prediction", level = 0.95)
 #' 
 #' $\newline$
 #' 
