@@ -442,7 +442,7 @@ mctest(MOD_FULL, type="o")
 #' del proceso. 
 #'
 #' Primero, definimos el modelo con solo el intercept.
-Mod_NULL <- lm(Ozono ~ 1, data = OzonoLA) 
+Mod_NULL <- lm(Ozono ~ 1, data = Datos) 
 #' Ahora, aplicaremos la siguiente función para obtener el modelo óptimo:
 stepMod <- step(Mod_NULL, direction = "both", trace = 1,
                 scope = list(lower = Mod_NULL, 
@@ -465,7 +465,27 @@ ajuste <- ajuste_sin_inv_alt_b
 anova(ajuste, MOD_FULL) 
 #' El resultado es no significativo, por lo que la selección ha merecido la pena.
 #'
-#' ## **6.** Inferencia modelo 
+#' ## **6.** Posible interacción. 
+#' 
+#' En este apartado analizaremos si un modelo que incluya alguna interacción
+#' entre variables originales resultaría mejor que el elegido.
+#' 
+#' Primero, definimos el modelo con todas las interacciones posibles:
+ajuste.i <- update(ajuste,.~.^5, data=OzonoLA)
+summary(ajuste.i)
+#' Ninguna variable resulta significativa. Sin embargo, haremos una selección
+#' secuencial para comprobar que ninguna interacción es significativa:
+ajuste.i.correcto <-step(Mod_NULL, direction = "both", trace = 1,
+                         scope = list(lower = Mod_NULL, 
+                                      upper = ajuste.i) )
+#' Ahora comprobaremos utilizando un anova de modelos anidados si el modelo con 
+#' alguna interacción es mejor que el modelo seleccionado en el apartado anterior:
+anova(ajuste, ajuste.i.correcto) 
+# La prueba resulta significativa, por lo que es mejor el modelo que incluye 
+# interacciones.
+ajuste <- ajuste.i.correcto
+#'
+#' ## **7.** Inferencia modelo 
 #' 
 #' Ahora ya podemos comenzar la inferencia.
 summary(ajuste)
@@ -477,7 +497,7 @@ summary(ajuste)
 #' al modelo que contiene únicamente el intercept, debido al p-valor < 2.2e-16. 
 #' 
 #'
-#' ## **7.** Validación modelo seleccionado 
+#' ## **8.** Validación modelo seleccionado 
 #' 
 #' Por abreviar la notación, tenemos:
 MS <- ajuste  # Ajuste modelo elegido.
@@ -508,13 +528,13 @@ errores <- cv_k3_MC$cvpred - cv_k3_MC$Ozono
 
 #' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
 #' 
-#' ## **8.** Análisis de residuos modelo seleccionado 
+#' ## **9.** Análisis de residuos modelo seleccionado 
 #' 
 #'
-#' ## **9.** Análisis de influencia modelo seleccionado
+#' ## **10.** Análisis de influencia modelo seleccionado
 #' 
 #' 
-#' ## **10.** Estimación media condicionada y predicción 
+#' ## **11.** Estimación media condicionada y predicción 
 #' Finalmente, obtengamos el intervalo de confianza y de predicción para el nivel 
 #' de ozono medio al 95% de confianza con el modelo seleccionado con todas las 
 #' variables fijadas en su valor medio.
@@ -525,19 +545,21 @@ new.dat <- data.frame(T_Sandburg = mean(T_Sandburg), Humedad = mean(Humedad),
 predict(ajuste, newdata = new.dat, interval="confidence", level = 0.95)
 predict(ajuste, newdata = new.dat, interval="prediction", level = 0.95)
 #' 
-rm(list = ls())
-#' \newpage
+#' $\newline$
+#' 
 #' # **Regresión Logística**
 #' 
 #' - Antes de empezar, cargamos los datos *Oro.rda*
 load("Datos/Oro.rda")
+attach(Oro)
+explicativas.oro <- Oro[,1:3]    # Almacenamos las explicativas
+respuesta.oro <- Proximidad      # Almacenamos la variable de respuesta
 #'
 #'
 #' ## **1.** Análisis descriptivo
 #' Para el análisis descriptivo de las variables podemos comenzar con una visión
 #' general de las variables mediante las funciones `str()` y `summary()`.
 str(Oro)
-#' 
 #' La salida de `str()` nos dice que los datos constan de 64 observaciones de 4 variables:
 #' 
 #' - `As`: Nivel de concentración de arsénico en la muestra de agua. (numérica)
@@ -545,57 +567,28 @@ str(Oro)
 #' - `Corredor`: Variable binaria indicando si la zona muestreada está (1) o no
 #'   está (0) en alguno de los corredores delimitados por las lineas sobre el
 #'   mapa. (categórica)
-#' - `Proximidad` : Variable de respuesta que toma los valores 1 o 0 según que
-#'   el depósito esté próximo o esté muy lejano al lugar.
 #' 
-attach(Oro)
-Oro$Corredor <- as.factor(Oro$Corredor) # Convertimos la variable Corredor a factor
-numericas.oro <- Oro[1:2]               # Almacenamos las variables numéricas
-respuesta.oro <- Proximidad             # Almacenamos la variable de respuesta
-#' 
-#' Con la salida de `summary()` y graficando `As` frente a `Sb` podemos ver que,
-#' basándonos en la diferencia entre las medias y las medianas, las variables
-#' numéricas se concentran en valores bajos, aunque deben de existir registros
-#' con valores relativamente altos:
+#' Más la variable de respuesta `Proximidad`, que toma los valores 1 o 0 según
+#' que el depósito esté próximo o esté muy lejano al lugar.
 summary(Oro)
-#' \newpage
-plot(numericas.oro, pch=18,
-     main="Representación de la variables As y Sb")
-#' 
-#' Este hecho se confirma también al mirar los histogramas y diagramas de cajas:
+plot(explicativas.oro, pch=18,
+     main="Representación por parejas de las explicativas")
+
+boxplot(explicativas.oro, horizontal=T, pch=5,
+        main="Diagrama de cajas de las explicativas")
+
 old.par <- par(mfrow=c(1,2))
-hist(As, freq=F, xlab="As", ylab = "Densidad",
-     main="Concentración de Arsénico")
-curve(dnorm(x,mean=mean(As), sd=sd(As)), 
-      col="blue", lwd=3, add=TRUE)
-
-hist(Sb, freq=F, xlab="Sb", ylab = "Densidad",
-     main="Concentración de Antimonio")
-curve(dnorm(x,mean=mean(Sb), sd=sd(Sb)), 
-      col="blue", lwd=3, add=TRUE)
+hist(As, main="Concentración de Arsénico")
+hist(Sb, main="Concentración de Antimonio")
+#' \newpage
 par(old.par)
-
-boxplot(numericas.oro, horizontal=T, pch=5,
-        main="Diagrama de cajas de las variables numéricas")
-#' 
-#' Distribución de la variable `Proximidad`:
-table(Proximidad); table(Proximidad)/nrow(Oro)
-#' 
-#' Distribución de la variable `Corredor`:
-table(Corredor)
-#' 
-#' Observamos que si los datos se encuentran en alguno de los corredores, suelen
-#' estar próximos a un depósito de oro y lejanos si no es así:
-xtabs(~Proximidad + Corredor, data=Oro)
-#' 
+hist(Corredor, main="Histograma de la variable Corredor")
 #' 
 #' ## **2.** Modelo matemático
-#' Dado que contamos con una muestra de n realizaciones $(\vec{X}^t,Y)$ con
-#' $\vec{X}^t = (X_1, \ldots, X_k)$ que asumimos independientes, y que la variable
-#' respuesta, `Proximidad`, es binaria (0 o 1), debemos de elegir un modelo que
-#' tenga esto en cuenta. En nuestro caso hemos elegido una transformación del
-#' modelo lineal, definida por la distribución logística de la ecuación
-#' \ref{logdistribution}.
+#' Dado que la variable de respuesta, `Proximidad`, es binaria (0 o 1),
+#' deberemos de elegir un modelo que tenga esto en cuenta. En nuestro caso hemos
+#' elegido una transformación del modelo lineal, definida por la distribución
+#' logística de la ecuación \ref{logdistribution}
 #' 
 #' \begin{equation} \label{logdistribution}
 #' F(z) = \frac{e^{z}}{1 + e^{z}} = \frac{1}{1 + e^{-z}}
@@ -604,18 +597,11 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' Por tanto, nuestro modelo logístico quedaría de la forma
 #' 
 #' \begin{equation} \label{p_i}
-#' Y|(\vec{X}=\vec{X_i}) \sim{Be(p_i)}, \quad p_i = \mathbb{P}(Y = 1|\vec{X_i}) =
+#' \mathbb{E}(Y|\vec{X_i}) = p_i = \mathbb{P}(Y = 1|\vec{X_i}) =
 #' \frac{1}{1 + e^{-\eta}}
 #' \end{equation}
 #' 
-#' Tal que
-#' 
-#' \begin{equation} \label{eta}
-#' \eta = \beta_0 + \beta_1 As + \beta_2 Sb + \tau I(Corredor=1)
-#' \end{equation}
-#' 
-#' siendo $I(Corredor = 1)$ la variable indicadora para cuando Corredor toma el
-#' valor 1. Además,
+#' tal que $\eta = \vec\beta^t\vec{X_i}$ . Además,
 #' 
 #' \begin{equation} \label{1-p_i}
 #' 1 - p_i = \mathbb{P}(Y = 0|\vec{X_i}) = 
@@ -624,6 +610,7 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' \end{equation}
 #' 
 #' 
+#' \newpage
 #' ## **3.** Interpretación del modelo
 #' Para una mejor interpretación del modelo, podemos definir el **odds**$_i$ de
 #' manera que 
@@ -631,26 +618,14 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' \begin{equation} \label{odds}
 #' odds_i = odds(Y|\vec{X_i}) = \frac{p_i}{1 - p_i} =
 #' e^{\eta} = e^{\vec\beta^t\vec{X_i}} =
-#' e^{\beta_0}e^{\beta_1 X_{i1}} \cdots\: e^{\beta_k X_{ik}}
-#' \enspace,\enspace {1}\leq{i}\leq{n}
+#' e^{\beta_0}e^{\beta_1 X_{i1}} \cdots\: e^{\beta_k X_{ik}} =
+#' e^{\beta_0}\prod_{j=1}^{k}e^{\beta_j X_{ij}} \enspace,\enspace {1}\leq{i}\leq{n}
 #' \end{equation}
 #' 
 #' Este es un modelo multiplicativo, en el cual $e^{\beta_0}$ es la respuesta
 #' cuando $\vec{X_i} = \vec{0}$, mientras que $e^{\beta_j}$, para $1 \leq j \leq k$, es el
 #' incremento multiplicativo $(e^{\beta_j})^l$ en el odds para algún incremento
 #' $l$ en $X_j$
-#' 
-#' Si resulta que existe una variable binaria podemos utilizar el **odds-ratio**,
-#' que indica en qué medida el suceso $Y = 1$ es más posible que $Y = 0$ si
-#' $X = 1$ que si $X = 0$:
-#' \begin{equation} \label{OR}
-#' OR = \frac{\mathbb{P}(Y = 1 | X = 1) / \mathbb{P}(Y = 0 | X = 1)}
-#'           {\mathbb{P}(Y = 1 | X = 0) / \mathbb{P}(Y = 0 | X = 0)} = 
-#'      \frac{e^{\beta_0 + \beta_1}}{e^{\beta_0}}
-#' \end{equation}
-#' 
-#' Si $X$ es cualitativa podemos seguir aplicando el *OR* con $g - 1$ variables
-#' *dummy*, siendo $g$ el número de categorías.
 #' 
 #' También podemos expresar el modelo aplicando logaritmos a la ecuación
 #' \ref{odds}, de manera que
@@ -660,14 +635,7 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' \end{equation}
 #' 
 #' Los cuales denominaremos como **logit**$_i$. Estos logits son interpretables
-#' mucho más fácilmente ya que son interpretables linealmente.
-#' 
-#' Finalmente, por lo comentado en el apartado del modelo matemático y en este, este
-#' modelo sigue las tres siguientes hipótesis estructurales:
-#' 
-#' 1. Linealidad de los logits.
-#' 2. Respuesta binaria de la $Y$.
-#' 3. Independencia de las observaciones.
+#' mucho más fácilmente, aunque debido a que
 #' 
 #' 
 #' ## **4.** Análisis de multicolinealidad
@@ -678,7 +646,6 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' 
 #' Utilizaremos los factores de inflacción de la varianza generalizada, para
 #' ver si nos encontramos con variables correlacionadas:
-ajuste_completo <- glm(Proximidad~., data = Oro, family = "binomial")
 vif(ajuste_completo)
 #' COMPLETAR. Los factores de inflacción de la varianza son todos menores que 10,
 #' lo que nos indican que no estamos ante un caso claro de multicolinealidad.
@@ -719,17 +686,6 @@ step(M0, direction="forward", trace=1,
 #' no aporta nada a nuestro ajuste.
 #' 
 #' ## **7.** Inferencia
-#' 
-ajuste <- glm(Proximidad~., data=Oro, family="binomial")
-summary(ajuste)
-#' 
-#' Teniendo en cuenta la ecuación \ref{logit}, los coeficientes ajustados y las
-#' variables significativas, el modelo quedaría como en la equación \ref{adjmodel}
-#' 
-#' \begin{equation} \label{adjmodel}
-#' ln( \frac {\hat{p}} {1-\hat{p}} ) = \hat\eta = A + B As + C Sb + D I(Corredor=1)
-#' \end{equation}
-#' 
 #' 
 #' ## **8.** Estimación media y probabilidad condicionada
 #' 
@@ -806,4 +762,4 @@ plot(ajuste, which = 4)
 im <- influence.measures(ajuste)
 summary(im)
 #' INTERPRETAR SALIDA
-#'
+#' 

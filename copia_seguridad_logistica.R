@@ -12,53 +12,33 @@
 #'   está (0) en alguno de los corredores delimitados por las lineas sobre el
 #'   mapa.
 #' 
-#' La variable respuesta fue la `Proximidad` a un depósito de oro, y toma los
-#' valores 1 o 0 según que el depósito esté próximo o esté muy lejano al lugar.
+#' La variable respuesta fue `Proximidad` a un depósito de oro, y toma los valores
+#' 1 o 0 según que el depósito esté próximo o esté muy lejano al lugar.
 
 
-### Carga y fijado de los datos del Oro ----
+### 0. Carga y fijado de los datos del Oro ----
 setwd("~/Escritorio/MR/")
 load("Datos/Oro.rda")
 attach(Oro)
 
-### 1. Análisis descriptivo ----
-head(Oro)
-Oro$Corredor <- as.factor(Oro$Corredor) # Convertimos la variable Corredor a factor
+### 1. Primer análisis descriptivo ----
+explicativas.oro <- Oro[,1:3]    # Seleccionamos las explicativas
+respuesta.oro <- Proximidad # Seleccionamos la variable de respuesta
 
 str(Oro)
 summary(Oro)
+plot(explicativas.oro, pch=18,
+     main="Representación por parejas de las explicativas")
 
-numericas.oro <- Oro[,1:2]    # Seleccionamos las variables numéricass
-respuesta.oro <- Proximidad      # Seleccionamos la variable de respuesta
-
-plot(numericas.oro, pch=18,
-     main="Representación de la variables As y Sb")
-
-boxplot(numericas.oro, horizontal=T, pch=5,
-        main="Diagrama de cajas de las variables numéricas")
-
-table(Proximidad); table(Proximidad)/nrow(Oro) # Distribución de la variable de Proximidad
-
-table(Corredor)
-
-xtabs(~Proximidad + Corredor, data=Oro) # Observamos que si los datos se
-# encuentran en alguno de los corredores, suelen estar próximos a un depósito de
-# oro y lejanos si no es así
+boxplot(explicativas.oro, horizontal=T, pch=5,
+        main="Diagrama de cajas de las explicativas")
 
 old.par <- par(mfrow=c(1,2))
-hist(As, freq=F, xlab="As", ylab = "Densidad",
-     main="Concentración de Arsénico")
-curve(dnorm(x,mean=mean(As), sd=sd(As)), 
-      col="blue", lwd=3, add=TRUE)
-
-hist(Sb, freq=F, xlab="Sb", ylab = "Densidad",
-     main="Concentración de Antimonio")
-curve(dnorm(x,mean=mean(Sb), sd=sd(Sb)), 
-      col="blue", lwd=3, add=TRUE)
+hist(As, main="Histograma de la concentración de Arsénico")
+hist(Sb, main="Histograma de la concentración de Antimonio")
 par(old.par)
 
-boxplot(numericas.oro, horizontal=T, pch=5,
-        main="Diagrama de cajas de las variables numéricas")
+hist(Corredor, main="Histograma de Corredor")
 
 
 ### 2. Modelo matemático ----
@@ -72,7 +52,8 @@ boxplot(numericas.oro, horizontal=T, pch=5,
 #' 
 
 ### 3. Interpretación modelo ----
-#' ...
+ajuste_completo <- glm(Proximidad~., data=Oro, family="binomial")
+summary(ajuste_completo)
 
 ### 4. Análisis de multicolinealidad ----
 #' Debemos analizar si estamos ante un caso de multicolinealidad. Si así fuera, 
@@ -119,13 +100,8 @@ step(M0, direction="forward", trace=1,
 #' no aporta nada a nuestro ajuste.
 #' 
 ### 7. Inferencia ----
-#'
-ajuste <- glm(Proximidad~., data=Oro, family="binomial")
-summary(ajuste)
-#' A priori son significativos únicamente el intercept y el coeficiente de `As`
-summary(ajuste)$coef
-
-confint(ajuste) #
+ajuste <- ajuste_completo
+#' 
 #'
 ### 8. Estimación media y probabilidad condicionada ----
 #' 
@@ -202,4 +178,3 @@ plot(ajuste, which = 4)
 im <- influence.measures(ajuste)
 summary(im)
 #' INTERPRETAR SALIDA
-
