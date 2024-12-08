@@ -442,7 +442,7 @@ mctest(MOD_FULL, type="o")
 #' del proceso. 
 #'
 #' Primero, definimos el modelo con solo el intercept.
-Mod_NULL <- lm(Ozono ~ 1, data = Datos) 
+Mod_NULL <- lm(Ozono ~ 1, data = OzonoLA) 
 #' Ahora, aplicaremos la siguiente función para obtener el modelo óptimo:
 stepMod <- step(Mod_NULL, direction = "both", trace = 1,
                 scope = list(lower = Mod_NULL, 
