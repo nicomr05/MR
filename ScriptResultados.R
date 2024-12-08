@@ -20,24 +20,26 @@ attach(OzonoLA)
 #' general de las variables mediante las funciones `str()` y `summary()`.
 str(OzonoLA)
 #'  La salida de `str()` nos dice que los datos constan de 203 observaciones de 13 variables:
-#' - Mes: Número del mes en el que se hicieron las observaciones (Entero)
-#' - DiaMes: Número del día del mes en el que se hicieron las observaciones (Entero)
-#' - DíaSemana: Número del día de la semana en el que se hicieron las observaciones (Entero)
-#' - Ozono: Nivel de Ozono medido (Numérica)
-#' - Pres_Alt: Altura en metros a la que se alcanza una presion de 500 milibares (Entero)
-#' - Vel_Viento: Velocidad del viento en millas por hora en el Aeropuerto Internacional de Los Angeles (Entero)
-#' - Humedad: Humedad en porcentaje en LAX (Entero)
-#' - T_Sandburg: Temperatura (F) en Sandburg, CA (Entero)
-#' - T_ElMonte: Temperatura (F) en El Monte, CA (Numérica)
-#' - Inv_ALt_b: Inversion de la altura base (en pies) en LAX (Entero)
-#' - Grand_Pres: Gradiente de presion de LAX a Daggett, CA (Entero)
-#' - Inv_T_b: Inversion de la temperatura base (F) en LAX (Numérica)
-#' - Visibilidad: Visibilidad (millas) evaluada en LAX (Entero)
+#'  
+#' - `Mes`: Número del mes en el que se hicieron las observaciones (Entero)
+#' - `DiaMes`: Número del día del mes en el que se hicieron las observaciones (Entero)
+#' - `DíaSemana`: Número del día de la semana en el que se hicieron las observaciones (Entero)
+#' - `Ozono`: Nivel de Ozono medido (Numérica)
+#' - `Pres_Alt`: Altura en metros a la que se alcanza una presion de 500 milibares (Entero)
+#' - `Vel_Viento`: Velocidad del viento en millas por hora en el Aeropuerto Internacional de Los Angeles (Entero)
+#' - `Humedad`: Humedad en porcentaje en LAX (Entero)
+#' - `T_Sandburg`: Temperatura (F) en Sandburg, CA (Entero)
+#' - `T_ElMonte`: Temperatura (F) en El Monte, CA (Numérica)
+#' - `Inv_ALt_b`: Inversion de la altura base (en pies) en LAX (Entero)
+#' - `Grand_Pres`: Gradiente de presion de LAX a Daggett, CA (Entero)
+#' - `Inv_T_b`: Inversion de la temperatura base (F) en LAX (Numérica)
+#' - `Visibilidad`: Visibilidad (millas) evaluada en LAX (Entero)
 #' 
 summary(OzonoLA)
 #'
 #' Ahora realizaremos un análisis descriptivo de cada variable:
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Mes'
+#' 
+#' ### Análisis descriptivo de la variable `Mes` :
 summary(Mes)
 #' Desviación típica y rango intercuartílico:
 sd(Mes) 
@@ -64,7 +66,7 @@ boxplot(Mes, main = "", xlab="Mes",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'DiaMes'
+#' ### Análisis descriptivo de la variable `DiaMes` :
 summary(Mes)
 #' Desviación típica y rango intercuartílico:
 sd(DiaMes) 
@@ -91,7 +93,7 @@ boxplot(DiaMes, main = "", xlab="DiaMes",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'DiaSemana'
+#' ### Análisis descriptivo de la variable `DiaSemana` :
 summary(DiaSemana)
 #' Desviación típica y rango intercuartílico:
 sd(DiaSemana) 
@@ -118,7 +120,7 @@ boxplot(DiaSemana, main = "", xlab="DiaSemana",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Ozono'
+#' ### Análisis descriptivo de la variable `Ozono` :
 summary(Ozono)
 #' Desviación típica y rango intercuartílico:
 sd(Ozono) 
@@ -145,7 +147,7 @@ boxplot(Ozono, main = "", xlab="Ozono",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Pres_Alt'
+#' ### Análisis descriptivo de la variable `Pres_Alt` :
 summary(Pres_Alt)
 #' Desviación típica y rango intercuartílico:
 sd(Pres_Alt) 
@@ -172,7 +174,7 @@ boxplot(Pres_Alt, main = "", xlab="Pres_Alt",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Vel_Viento'
+#' ### Análisis descriptivo de la variable `Vel_Viento` :
 summary(Vel_Viento)
 #' Desviación típica y rango intercuartílico:
 sd(Vel_Viento) 
@@ -199,7 +201,7 @@ boxplot(Vel_Viento, main = "", xlab="Vel_Viento",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Humedad'
+#' ### Análisis descriptivo de la variable `Humedad` :
 summary(Humedad)
 #' Desviación típica y rango intercuartílico:
 sd(Humedad) 
@@ -226,7 +228,7 @@ boxplot(Humedad, main = "", xlab="Humedad",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'T_Sandburg'
+#' ### Análisis descriptivo de la variable `T_Sandburg` :
 summary(T_Sandburg)
 #' Desviación típica y rango intercuartílico:
 sd(T_Sandburg) 
@@ -280,7 +282,7 @@ boxplot(T_ElMonte, main = "", xlab="T_ElMonte",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Inv_Alt_b'
+#' ### Análisis descriptivo de la variable `Inv_Alt_b` :
 summary(Inv_Alt_b)
 #' Desviación típica y rango intercuartílico:
 sd(Inv_Alt_b) 
@@ -307,7 +309,7 @@ boxplot(Inv_Alt_b, main = "", xlab="Inv_Alt_b",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Grad_Pres'
+#' ### Análisis descriptivo de la variable `Grad_Pres` :
 summary(Grad_Pres)
 #' Desviación típica y rango intercuartílico:
 sd(Grad_Pres) 
@@ -334,7 +336,7 @@ boxplot(Grad_Pres, main = "", xlab="Grad_Pres",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Inv_T_b'
+#' ### Análisis descriptivo de la variable `Inv_T_b` :
 summary(Inv_T_b)
 #' Desviación típica y rango intercuartílico:
 sd(Inv_T_b) 
@@ -361,7 +363,7 @@ boxplot(Inv_T_b, main = "", xlab="Inv_T_b",
         cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
         horizontal = TRUE, cex=3)
 #' 
-#' - ANÁLISIS DESCRIPTIVO VARIABLE 'Visibilidad'
+#' ### Análisis descriptivo de la variable `Visibilidad` :
 summary(Visibilidad)
 #' Desviación típica y rango intercuartílico:
 sd(Visibilidad) 
