@@ -407,11 +407,15 @@ partial.r(OzonoLA)
 MOD_FULL <- lm(Ozono~., data=OzonoLA)
 MOD_FULL
 coef(MOD_FULL)
-#' Ozono = 55.428 - 0.343*Mes* + 0.012*Diames* - 0.047*DiaSeman* - 0.0133*Pres_Alt*
-#' - 0.096*Vel_Viento* + 0.088*Humedad* + 0.1366*T_Sandburg* + 0.5598*T_ElMonte* 
-#' - 0.0006*Inv_Alt_b* + 0.0004*Grad_Pres* - 0.124*Inv_T_b* - 0.005*Visibilidad*
+#' Ozono_i = 55.428 - 0.343*Mes_i* + 0.012*Diames_i* - 0.047*DiaSemana_i* - 0.0133*Pres_Alt_i*
+#' - 0.096*Vel_Viento_i* + 0.088*Humedad_i* + 0.1366*T_Sandburg_i* + 0.5598*T_ElMonte_i* 
+#' - 0.0006*Inv_Alt_b_i* + 0.0004*Grad_Pres_i* - 0.124*Inv_T_b_i* - 0.005*Visibilidad_i*
+#' 
+#' Suma de residuos al cuadrado media:
 ( MSSR <- summary(MOD_FULL)$sigma^2 )
+#' Grados de libertad de los residuos:
 ( gl.R <- MOD_FULL$df )
+#' Número de parámetros:
 ( gl.E <- MOD_FULL$rank )
 #'
 #'
@@ -423,7 +427,7 @@ summary(MOD_FULL)
 #' No obstante, como esto se puede deber a la presencia de multicolinealidad, 
 #' vamos a analizarla.
 #'
-#' Para ello, utilizaremos la librería "mctest", que  proporciona un análisis completo 
+#' Para ello, utilizaremos la librería "mctest", que proporciona un análisis completo 
 #' de multicolinealidad:
 library(mctest)
 mctest(MOD_FULL, type="o")  
@@ -449,9 +453,9 @@ stepMod <- step(Mod_NULL, direction = "both", trace = 1,
                              upper = MOD_FULL) ) 
 summary((stepMod))
 #' El modelo resultante de la selección secuencial es:
-#' Ozono = 51.3444845 - 0.3324536*Mes* - 0.0134013 *Pres_Alt*
-#' + 0.0975694*Humedad* + 0.1242673*T_Sandburg* + 0.4743962*T_ElMonte* 
-#' - 0.0003211*Inv_Alt_b*
+#' Ozono_i = 51.3444845 - 0.3324536*Mes_i* - 0.0134013 *Pres_Alt_i*
+#' + 0.0975694*Humedad_i* + 0.1242673*T_Sandburg_i* + 0.4743962*T_ElMonte_i* 
+#' - 0.0003211*Inv_Alt_b_i*
 #' 
 #' No obstante, con un 10% de significación, la variable Inv_Alt_b no es significativa,
 #' por lo que examinaremos si se debe excluir del modelo:
@@ -488,24 +492,23 @@ library(DAAG)
 ( B2 <- sum(residuals(MS)^2)/press(MS) )
 #' Elevado y superior al del modelo completo
 sum(residuals(MC)^2)/press(MC) 
-
+#'
 #' Haremos una validación del tipo LOOCV (Leave One Out Cross Validation):
-
+#'
 #' Primero, para MS:
-
 class(OzonoLA) # ya es un data frame
 set.seed(5198) 
 cv_k3_MS <- cv.lm(data=OzonoLA,form.lm= formula(MS),m=length(OzonoLA))  
 #' Se calcula la raíz cuadrada de la media de los cuadrados de las diferencias entre predicciones y observaciones:
 errores <- cv_k3_MS$cvpred - cv_k3_MS$Ozono # predicho por cv - predicción real
 ( error_cv_k3_MS <- sqrt(mean(errores^2)) ) # estimador RMSE (raiz media suma residuos al cuadrado)
-
+#'
 #' Finalmente, para MC:
 set.seed(5198) 
 cv_k3_MC <- cv.lm(data=OzonoLA,form.lm=formula(MC),m=length(OzonoLA))   
 errores <- cv_k3_MC$cvpred - cv_k3_MC$Ozono
 ( error_cv_k3_MC <- sqrt(mean(errores^2)) )
-
+#'
 #' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
 #' 
 #' ## **8.** Análisis de residuos modelo seleccionado 
@@ -516,12 +519,12 @@ errores <- cv_k3_MC$cvpred - cv_k3_MC$Ozono
 #' 
 #' ## **10.** Estimación media condicionada y predicción 
 #' Finalmente, obtengamos el intervalo de confianza y de predicción para el nivel 
-#' de ozono medio al 95% de confianza con el modelo seleccionado con todas las 
-#' variables fijadas en su valor medio.
-
+#' de ozono medio al 95% de confianza con el modelo seleccionado para cada mes con 
+#' todas las demás variables fijadas en su valor medio .
+#' 
 new.dat <- data.frame(T_Sandburg = mean(T_Sandburg), Humedad = mean(Humedad), 
-                      T_ElMonte = mean(T_ElMonte), Mes = mean(Mes),
-                      Pres_Alt = mean(Pres_Alt), Inv_Alt_b = mean(Inv_Alt_b)) # tiene que aparecer valores de las vbles que están en el modelo.
+                      T_ElMonte = mean(T_ElMonte), Mes = c(1:12),
+                      Pres_Alt = mean(Pres_Alt), Inv_Alt_b = mean(Inv_Alt_b)) 
 predict(ajuste, newdata = new.dat, interval="confidence", level = 0.95)
 predict(ajuste, newdata = new.dat, interval="prediction", level = 0.95)
 #' 
@@ -680,24 +683,55 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' ver si nos encontramos con variables correlacionadas:
 ajuste_completo <- glm(Proximidad~., data = Oro, family = "binomial")
 vif(ajuste_completo)
-#' COMPLETAR. Los factores de inflacción de la varianza son todos menores que 10,
+#' Los factores de inflacción de la varianza son todos menores que 10,
 #' lo que nos indican que no estamos ante un caso claro de multicolinealidad.
 #' 
-#' ## **5.** Selección del modelo
+#' Analizaremos la estructura de correlaciones de las variables:
 #' 
-#' A pesar de que no hay aparentemente multicolinealidad o un número elevado de variables,
-#' decidimos hacer una selección del modelo.
+#' Primero, cuando corredor = 1:
+library(ggm)
+# Eliminamos la variable respuesta y la variable Corredor.
+correlations(cov(Oro[Corredor == TRUE,1:2])) 
+#'
+#' Ahora, cuando corredor = 0:
+library(ggm)
+# Eliminamos la variable respuesta y la variable Corredor.
+correlations(cov(Oro[Corredor == FALSE,1:2])) 
+#'
+#' Cuando la variable corredor toma valor 1, podemos ver que las variables As y Sb
+#' están bastante correlacionadas. Cuando la variable corredor toma valor 0,
+#' las variables ya no están tan correlacionadas.
+#' Esto nos da a entender que la variable Corredor está correlacionada con las otras
+#' dos variables, ya que si no lo estuviese, obtendríamos valores similares en ambos 
+#' valores posibles de la variable.
+#' 
+#' Por lo tanto, consideramos adecuado hacer una selección de variables.
+#' 
+#' ## **5.** Selección del modelo
 #' 
 #' Tal y como hicimos en el ejercicio de regresión lineal, decidimos utilizar el 
 #' método de selección secuencial STEPWISE:
 #' 
 #' Definimos el modelo con sólo el intercept:
 M0 <- glm(Proximidad~1,family=binomial,data=Oro)
+#'
 #' Aplicamos selección secuencial:
 step(M0, direction="forward", trace=1,
      scope = list(lower=M0,upper=ajuste_completo))
-#' Efectivamente, el modelo óptimo resultante es el modelo completo. Esto era predecible
+#' El modelo óptimo resultante es el modelo completo. Esto era predecible
 #' debido al bajo número de variables.
+#' 
+#' Haremos un summary del modelo para ver la significación de las variables:
+summary(ajuste_completo)
+#' Vemos que la variable Corredor no sería significativa a un 5% de significación.
+#' No obstante, se conoce que el estadísitico del summary no es adecuado en todos los
+#' los casos. 
+#' 
+#' En su lugar, es mejor utilizar el test de razón de verosimilitudes, que compara
+#' las Deviance del ajuste con y sin la variable Corredor: 
+anova(update(ajuste_completo,.~.-Corredor), ajuste_completo, test="Chisq")
+#' Obtenemos un test no significativo al 5%, por lo que decidimos dejar la variable
+#' corredor en el modelo.
 #' 
 #' ## **6.** Posible Interacción
 #' 
@@ -733,6 +767,40 @@ summary(ajuste)
 #' 
 #' ## **8.** Estimación media y probabilidad condicionada
 #' 
+#' Haremos los intervalos de confianza y de probabilidad condicionada para ambos
+#' valores de la variable Corredor, manteniendo las otras dos variables en su media:
+#' 
+new <- with(Oro, data.frame(As = mean(As), Sb = mean(Sb), Corredor = Corredor))
+#' COMO FIJAR CORREDOR EN 0 Y 1
+#' 
+#' Utilizamos predict para la predicción estimada:
+p_est_proximidad <- predict(ajuste, newdata = new, 
+                          type = "response")
+cbind(new,p_est_admision)
+#'
+#' Para obtener los intervalos de confianza, utilizaremos la siguiente función
+#' proporcionada en el Script de R Logísitica:
+#' 
+est.media.cond.CI <- function(ajuste, newdata, level = 0.95){
+  # Predicciones de los logit 
+  pred <- predict(object = ajuste, newdata = newdata, se.fit = TRUE)
+  # CI para los logits 
+  za <- qnorm(p = (1 - level) / 2)
+  lwr <- pred$fit + za * pred$se.fit
+  upr <- pred$fit - za * pred$se.fit
+  # Back-transformada a probabilidades 
+  fit <- 1 / (1 + exp(-pred$fit))
+  lwr <- 1 / (1 + exp(-lwr))
+  upr <- 1 / (1 + exp(-upr))
+  # Acomodamos en una matriz la salida
+  result <- cbind(fit, lwr, upr)
+  colnames(result) <- c("p", "LI", "LS")
+  return(result)
+}
+#' La aplicamos del siguiente modo:
+est.media.cond.CI(ajuste, newdata = new)
+#'
+#'
 #' ## **9.** Bondad del ajuste
 #' 
 #' ## **10.** Validación del modelo
@@ -770,7 +838,7 @@ res.d <- residuals(ajuste, type="deviance")
 #' Los estandarizamos:
 #' Residuos Pearson estandarizados:
 res.p.e <- res.p/sqrt(1 - hatvalues(ajuste)) 
-# Residuos deviance estandarizados:
+#' Residuos deviance estandarizados:
 res.d.e <- res.d/sqrt(1 - hatvalues(ajuste)) 
 #'
 #' Obtenemos los gráficos de residuos:
