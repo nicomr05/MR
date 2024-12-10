@@ -480,6 +480,8 @@ summary(ajuste)
 #' gracias a la última linea del summary deducimos que es mejor este ajuste en comparación 
 #' al modelo que contiene únicamente el intercept, debido al p-valor < 2.2e-16. 
 #' 
+
+#' 
 #'
 #' ## **7.** Validación modelo seleccionado 
 #' 
@@ -508,13 +510,95 @@ set.seed(5198)
 cv_k3_MC <- cv.lm(data=OzonoLA,form.lm=formula(MC),m=length(OzonoLA))   
 errores <- cv_k3_MC$cvpred - cv_k3_MC$Ozono
 ( error_cv_k3_MC <- sqrt(mean(errores^2)) )
+par(mfrow=c(1,1)) 
 #'
 #' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
 #' 
 #' ## **8.** Análisis de residuos modelo seleccionado 
+#' Para realizar el análisis de los residuos usaremos los residuos estandarizados
+library(MASS)
+res.est  <- stdres(ajuste) 
+#' - Linealidad:
+scatter.smooth(ajuste$fit, res.est, main="Residuos ~ Ajustados", 
+               xlab="Ajustados",ylab="Residuos", pch = 21, 
+               bg = "green", cex.lab=1.5, cex=1.4, cex.main=1.5, 
+               lpars = list(col = "magenta", lwd = 3) )
+abline(h=0,lty=2,lwd=2)
+#' Como podemos observar en el gráfico no sería correcto afirmar linealidad
 #' 
+#' -Aleatoriedad:
+acf(res.est, lag.max = 10, type = "correlation")$acf  
+#' Como podemos ver en la matriz de correlaciones, las correlaciones entre un dato
+#' y el anterior son muy bajas, con lo cual, si sería correcto asimir aleatoriedad,
+#' 
+#' - Normalidad:
+par(mfrow=c(1,3))
+
+hist(res.est, breaks=6,freq=FALSE, main = "", xlab="Residuos", cex.lab=1.4, 
+     ylab = "Densidad", col = "lightblue", ylim=c(0,0.6))
+curve( dnorm(x), col="magenta", lwd=3, add=TRUE)
+etiquetas <- c("Histograma","Ajuste normal")
+legend("topright",etiquetas, lwd=2, col=c("lightblue","magenta"), 
+       lty=c(1,1), cex=1.3, inset=0.02, box.lty=0)
+
+boxplot(res.est, main = "", xlab="Residuos",
+        cex.lab=1.4, border = "blue", col= "lightblue", pch="+",
+        horizontal = TRUE, cex=3)
+
+plot(density(res.est, bw=0.4),main="",lwd=3,col="blue",
+     ylab="Densidad stimada residuos", cex.lab=1.4, cex.lab=1.4)
+polygon(density(res.est,bw=0.4), col="lightblue")
+curve( dnorm(x), col="magenta", lwd=3, add=TRUE)
+par(mfrow=c(1,1))
+#' 
+#' Gráficamente podemos deducir que nuestros datos no siguen exactamente una distribución
+#' normal pero si muy semejante.
+#' 
+library(nortest)
+lillie.test(res.est)  
+cvm.test(res.est)    
+ad.test(res.est)     
+shapiro.test(res.est)
+#'
+#'Analíticamente se confirma la teoría anterior ya que los p-vlores, en todos los 
+#'tests nos dan lo suficientemente grandes cómo para no rechazar la hipótesis nula,
+#'la cual se refiere a la normalidad.
+#'
+#'- Homoscedasticidad:
+#'
+#' H0: sigma^2=cte  vs H1: sigma^2!=cte
+#' Test de Breusch-Pagan
+library(lmtest)
+bptest(ajuste) 
+plot(ajuste, which=3)
+#'
+#'Tanto con el test de Breusch-Pagan cómo con el gráfico de los residuos podemos 
+#'concluir que se rechaza la hipótesis nula de homoscedasticidad
 #'
 #' ## **9.** Análisis de influencia modelo seleccionado
+#' 
+influencia <- influence(ajuste)
+#' 
+#' - Leverages:
+( lev <- influencia$hat )
+plot(lev, xlab = "Indice en la muestra", ylab = "Leverage", 
+     cex = 1.2, pch=19, col=4, cex.lab=1.4)
+#' 
+#' - Distancias de Cook:
+cooks.distance(ajuste)
+plot(ajuste,which=4)
+#' 
+#' - DFFITs
+DFFITs <- dffits(ajuste)
+#' 
+#' - DFBETAs
+DFBETAS <- dfbeta(ajuste) 
+par(mfrow = c(2,1), pch=19, col=1, cex.lab = 1.5, cex.axis = 1.5)
+plot(dfbeta(ajuste)[,1],xlab = "Indice omitido", 
+     ylab = expression(DFBETA[0]),col=4)
+plot(dfbeta(ajuste)[,2], xlab = "Indice omitido", col=4,
+     ylab = expression(DFBETA[1]))
+par(mfrow = c(1,1))
 #' 
 #' 
 #' ## **10.** Estimación media condicionada y predicción 
@@ -529,6 +613,8 @@ predict(ajuste, newdata = new.dat, interval="confidence", level = 0.95)
 predict(ajuste, newdata = new.dat, interval="prediction", level = 0.95)
 #' 
 rm(list = ls())
+#'
+#'
 #' \newpage
 #' # **Regresión Logística**
 #' 
