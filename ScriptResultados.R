@@ -469,7 +469,28 @@ ajuste <- ajuste_sin_inv_alt_b
 anova(ajuste, MOD_FULL) 
 #' El resultado es no significativo, por lo que la selección ha merecido la pena.
 #'
-#' ## **6.** Inferencia modelo 
+#'
+#' ## **6.** Posible Interacción
+#' 
+#' Debido a la posible necesidad de interacción, decidimos probar si un modelo
+#' que incluya interacción es mejor que nuestro modelo completo.
+#' 
+#' Comenzamos definiendo este modelo, con todas las interacciones posibles:
+ajuste.i <- update(ajuste_completo,.~.^3, family=binomial, data=Oro)
+summary(ajuste.i)
+#' Ningún coeficiente es significativo, por lo que consideramos que esto se 
+#' puede deber a la presencia de multicolinealidad debido a las interacciones.
+#' 
+#' Decidimos hacer una selección de variables, por si alguna interacción
+#' entre variables originales resultase significativa. La haremos igual
+#' que en el apartado anterior: 
+step(M0, direction="forward", trace=1,
+     scope = list(lower=M0,upper=ajuste.i))
+#' Finalmente, vemos que en este caso, la interacción de las variables
+#' no aporta nada a nuestro ajuste.
+#' 
+#' 
+#' ## **7.** Inferencia modelo 
 #' 
 #' Ahora ya podemos comenzar la inferencia.
 summary(ajuste)
@@ -483,7 +504,7 @@ summary(ajuste)
 
 #' 
 #'
-#' ## **7.** Validación modelo seleccionado 
+#' ## **8.** Validación modelo seleccionado 
 #' 
 #' Por abreviar la notación, tenemos:
 MS <- ajuste  # Ajuste modelo elegido.
@@ -514,7 +535,7 @@ par(mfrow=c(1,1))
 #'
 #' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
 #' 
-#' ## **8.** Análisis de residuos modelo seleccionado 
+#' ## **9.** Análisis de residuos modelo seleccionado 
 #' Para realizar el análisis de los residuos usaremos los residuos estandarizados
 library(MASS)
 res.est  <- stdres(ajuste) 
@@ -575,7 +596,7 @@ plot(ajuste, which=3)
 #'Tanto con el test de Breusch-Pagan cómo con el gráfico de los residuos podemos 
 #'concluir que se rechaza la hipótesis nula de homoscedasticidad
 #'
-#' ## **9.** Análisis de influencia modelo seleccionado
+#' ## **10.** Análisis de influencia modelo seleccionado
 #' 
 influencia <- influence(ajuste)
 #' 
@@ -601,7 +622,7 @@ plot(dfbeta(ajuste)[,2], xlab = "Indice omitido", col=4,
 par(mfrow = c(1,1))
 #' 
 #' 
-#' ## **10.** Estimación media condicionada y predicción 
+#' ## **11.** Estimación media condicionada y predicción 
 #' Finalmente, obtengamos el intervalo de confianza y de predicción para el nivel 
 #' de ozono medio al 95% de confianza con el modelo seleccionado para cada mes con 
 #' todas las demás variables fijadas en su valor medio .
@@ -768,56 +789,33 @@ xtabs(~Proximidad + Corredor, data=Oro)
 #' Utilizaremos los factores de inflacción de la varianza generalizada, para
 #' ver si nos encontramos con variables correlacionadas:
 ajuste_completo <- glm(Proximidad~., data = Oro, family = "binomial")
+library(car)
 vif(ajuste_completo)
 #' Los factores de inflacción de la varianza son todos menores que 10,
-#' lo que nos indican que no estamos ante un caso claro de multicolinealidad.
-#' 
-#' Analizaremos la estructura de correlaciones de las variables:
-#' 
-#' Primero, cuando corredor = 1:
-library(ggm)
-# Eliminamos la variable respuesta y la variable Corredor.
-correlations(cov(Oro[Corredor == TRUE,1:2])) 
-#'
-#' Ahora, cuando corredor = 0:
-library(ggm)
-# Eliminamos la variable respuesta y la variable Corredor.
-correlations(cov(Oro[Corredor == FALSE,1:2])) 
-#'
-#' Cuando la variable corredor toma valor 1, podemos ver que las variables As y Sb
-#' están bastante correlacionadas. Cuando la variable corredor toma valor 0,
-#' las variables ya no están tan correlacionadas.
-#' Esto nos da a entender que la variable Corredor está correlacionada con las otras
-#' dos variables, ya que si no lo estuviese, obtendríamos valores similares en ambos 
-#' valores posibles de la variable.
-#' 
-#' Por lo tanto, consideramos adecuado hacer una selección de variables.
+#' por lo que no estamos ante un caso de multicolinealidad.
 #' 
 #' ## **5.** Selección del modelo
 #' 
-#' Tal y como hicimos en el ejercicio de regresión lineal, decidimos utilizar el 
-#' método de selección secuencial STEPWISE:
+#' A pesar de no tener multicolinealidad en los datos, decidimos hacer una selección
+#' de variables, debido a la no significación de todas las variables.
 #' 
-#' Definimos el modelo con sólo el intercept:
-M0 <- glm(Proximidad~1,family=binomial,data=Oro)
-#'
-#' Aplicamos selección secuencial:
-step(M0, direction="forward", trace=1,
-     scope = list(lower=M0,upper=ajuste_completo))
-#' El modelo óptimo resultante es el modelo completo. Esto era predecible
-#' debido al bajo número de variables.
+#' Para ello, decidimos utilizar un método de selección exhaustiva con el BIC,
+#' ya que esta medida de selección de modelos 'castiga' a modelos con un número
+#' elevado de variables:
+library(bestglm)
+help(bestglm)
+M1.exh.AIC <- bestglm(Oro, IC = "BIC", family = binomial, 
+                      method = "exhaustive")
+M1.exh.AIC$Subsets
+# La fila con el asterisco indica el modelo seleccionado.
+# Aquí el modelo es el modelo sin corredor.
+# Esto también nos lo indicaba el p-valor inicial.
 #' 
-#' Haremos un summary del modelo para ver la significación de las variables:
-summary(ajuste_completo)
-#' Vemos que la variable Corredor no sería significativa a un 5% de significación.
-#' No obstante, se conoce que el estadísitico del summary no es adecuado en todos los
-#' los casos. 
 #' 
-#' En su lugar, es mejor utilizar el test de razón de verosimilitudes, que compara
-#' las Deviance del ajuste con y sin la variable Corredor: 
-anova(update(ajuste_completo,.~.-Corredor), ajuste_completo, test="Chisq")
-#' Obtenemos un test no significativo al 5%, por lo que decidimos dejar la variable
-#' corredor en el modelo.
+#' Por lo tanto, definimos el ajuste sin corredor y vemos la significación
+#' del resto de las variables: 
+ajuste_sin_corredor <- update(ajuste_completo,.~.-Corredor)
+summary(ajuste_sin_corredor)
 #' 
 #' ## **6.** Posible Interacción
 #' 
@@ -838,34 +836,39 @@ step(M0, direction="forward", trace=1,
 #' Finalmente, vemos que en este caso, la interacción de las variables
 #' no aporta nada a nuestro ajuste.
 #' 
+#' 
 #' ## **7.** Inferencia
 #' 
-ajuste <- glm(Proximidad~., data=Oro, family="binomial")
+ajuste <- ajuste_sin_corredor
 summary(ajuste)
 #' 
 #' Teniendo en cuenta la ecuación \ref{logit}, los coeficientes ajustados y las
 #' variables significativas, el modelo quedaría como en la equación \ref{adjmodel}
 #' 
 #' \begin{equation} \label{adjmodel}
-#' ln( \frac {\hat{p}} {1-\hat{p}} ) = \hat\eta = A + B As + C Sb + D I(Corredor=1)
+#' ln( \frac {\hat{p}} {1-\hat{p}} ) = \hat\eta = -4.9664 + 1.2490 As + 0.9235 Sb 
 #' \end{equation}
 #' 
+#' Empezamos la inferencia haciendo los intervalos de confianza para los parámetros.
+#'  Haremos los intervalos basados en las sd de las pruebas de Wald y en los cuantiles de una normal:
+confint.default(ajuste)
+#'
+#'INTERPRETAR EN CASA
 #' 
 #' ## **8.** Estimación media y probabilidad condicionada
 #' 
-#' Haremos los intervalos de confianza y de probabilidad condicionada para ambos
-#' valores de la variable Corredor, manteniendo las otras dos variables en su media:
+#' Haremos los intervalos de confianza y de probabilidad manteniendo las dos 
+#' variables en su media:
 #' 
-new <- with(Oro, data.frame(As = mean(As), Sb = mean(Sb), Corredor = Corredor))
-#' COMO FIJAR CORREDOR EN 0 Y 1
+new <- with(Oro, data.frame(As = mean(As), Sb = mean(Sb)))
 #' 
 #' Utilizamos predict para la predicción estimada:
 p_est_proximidad <- predict(ajuste, newdata = new, 
                           type = "response")
-cbind(new,p_est_admision)
+cbind(new,p_est_proximidad)
 #'
-#' Para obtener los intervalos de confianza, utilizaremos la siguiente función
-#' proporcionada en el Script de R Logísitica:
+#' Para obtener los intervalos de confianza para estas predicciones, utilizaremos 
+#' la siguiente función proporcionada en el Script de R Logísitica:
 #' 
 est.media.cond.CI <- function(ajuste, newdata, level = 0.95){
   # Predicciones de los logit 
@@ -889,23 +892,8 @@ est.media.cond.CI(ajuste, newdata = new)
 #'
 #' ## **9.** Bondad del ajuste
 #' 
-#' ## **10.** Validación del modelo
-#' 
-#' Para validar el modelo, utilizaremos el método de LOOCV (Leave One Out Cross
-#' Validation) con la siguiente función de la librería boot:
-library(boot)
-set.seed(10203)
-class(Oro) # ya es un dataframe
-( ECMP.cv <- cv.glm(Oro,ajuste,K=length(Oro))$delta[1] )
-#' La salida $delta[1] proporciona el error cuadrático medio de predicción promediado 
-#' sobre todas las ejecuciones por validación cruzada que coincide con (FN+FP)/n.
-#' 
-#' Así, podemos obtener la Tasa de Clasificación Correcta:
-( TCC.cv <- 1-ECMP.cv )  
-#' El porcentaje resultante es muy cercano a 1, por lo que estamos ante un modelo
-#' bueno a la hora de clasificar.
 #'
-#'## **11.** Análisis de residuos
+#'## **10.** Análisis de residuos
 #'
 #' El modelo de regresión logísitica tiene 3 hipótesis estructurales:
 #' 1) La linealidad de los Logits.
@@ -937,15 +925,18 @@ plot(ajuste)
 #' Para chequear la linealidad, se utilizan los residuos del segundo tipo, es decir, 
 #' los de la deviance, del siguiente modo:
 car::avPlots(ajuste,terms=~.) 
-#' AYUDA INTERPRETACIÓN
+#' Podemos ver que prácticamente los datos están en torno a 0.
+#' El problema con las rectas es que, debido a la presencia de muchos 
+#' datos entre 0 y 10, su pendiente varía mucho.
+#' ACABAR INTERPRETACIÓN
 #' 
 #' También podemos hacer gráficos de residuos parciales, para ver si la falta de 
 #' linealidad es achacable a alguna variable concreta:
 library(car)
 crPlots(ajuste)
-#' AYUDA INTERPRETACIÓN
 #' 
-#'## **12.** Análisis de influencia
+#' 
+#'## **11.** Análisis de influencia
 #'
 #' Finalmente, los residuos de Pearson también se pueden utilizar para el 
 #' análisis de influencia.
@@ -959,5 +950,9 @@ plot(ajuste, which = 4)
 #' función de R para obtener las medidas del análisis de influencia automáticamente:
 im <- influence.measures(ajuste)
 summary(im)
-#' INTERPRETAR SALIDA
-#'
+#' Nos centramos en las columnas "cook.d", "hat" y "dffit":
+#' 
+#' Con respecto a los leverages de Pregibon, vemos que las observaciones
+#' {9, 39, 52} parecen influyentes.
+#' 
+#' Con respecto a la distancia de Cook, vemos que las observaciones
