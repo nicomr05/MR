@@ -480,25 +480,37 @@ anova(ajuste, MOD_FULL)
 #'
 #' ## **6.** Posible Interacción
 #' 
-#' Debido a la posible necesidad de interacción, decidimos probar si un modelo
-#' que incluya interacción es mejor que nuestro modelo completo.
+#' En este apartado analizaremos si un modelo que incluya alguna interacción
+#' entre variables originales resultaría mejor que el elegido.
 #' 
-#' Comenzamos definiendo este modelo, con todas las interacciones posibles:
-ajuste_completo <- glm(Proximidad~., data = Oro, family = "binomial")
-ajuste.i <- update(ajuste_completo,.~.^3, family=binomial, data=Oro)
+#' Primero, definimos el modelo con todas las interacciones posibles:
+ajuste.i <- update(ajuste,.~.^5, data=OzonoLA)
 summary(ajuste.i)
-#' Ningún coeficiente es significativo, por lo que consideramos que esto se 
-#' puede deber a la presencia de multicolinealidad debido a las interacciones.
+#' Ninguna variable resulta significativa. Sin embargo, haremos una selección
+#' secuencial para comprobar que ninguna interacción es significativa:
+ajuste.i.correcto <-step(Mod_NULL, direction = "both", trace = 1,
+                         scope = list(lower = Mod_NULL, 
+                                      upper = ajuste.i) )
+#' Ahora comprobaremos utilizando un anova de modelos anidados si el modelo con 
+#' alguna interacción es mejor que el modelo seleccionado en el apartado anterior:
+anova(ajuste, ajuste.i.correcto) 
+# La prueba resulta significativa, por lo que es mejor el modelo que incluye 
+# interacciones.
+ajuste <- ajuste.i.correcto
+summary(ajuste)
 #' 
-#' Decidimos hacer una selección de variables, por si alguna interacción
-#' entre variables originales resultase significativa. La haremos igual
-#' que en el apartado anterior: 
-step(M0, direction="forward", trace=1,
-     scope = list(lower=M0,upper=ajuste.i))
-#' Finalmente, vemos que en este caso, la interacción de las variables
-#' no aporta nada a nuestro ajuste.
+#' ¿Qué pasa si quitamos 'Mes' y 'T_Sandburg'?
+ajuste_sin_m_t_sand <- update(ajuste,.~.-Mes-T_Sandburg)
+summary(ajuste_sin_m_t_sand)
+#' No vemos una diferencia significativa en el summary. Vamos a comparar el AIC 
+#' y BIC del modelo con y sin:
 #' 
-#' 
+AIC(ajuste)
+AIC(ajuste_sin_m_t_sand) # menor
+
+BIC(ajuste)
+BIC(ajuste_sin_m_t_sand) # menor
+#'
 #' ## **7.** Inferencia modelo 
 #' 
 #' Ahora ya podemos comenzar la inferencia.
@@ -510,7 +522,17 @@ summary(ajuste)
 #' gracias a la última linea del summary deducimos que es mejor este ajuste en comparación 
 #' al modelo que contiene únicamente el intercept, debido al p-valor < 2.2e-16. 
 #' 
-
+summary(ajuste)$coefficients
+#' 
+#' - Intervalos de confianza:
+confint(ajuste,level=0.95) 
+#' Para sigma^2:
+( LS.IC.var <- gl.R * MSSR / qchisq(p=0.05,df=gl.R) )
+#' 
+#'Las elipses al 80, 90 y 95% de confianza para el vector de coeficientes:
+library(car)
+confidenceEllipse(model=ajuste, which.coef=c(5,3),
+                  levels=c(0.80,0.90,0.95))
 #' 
 #'
 #' ## **8.** Validación modelo seleccionado 
@@ -551,11 +573,13 @@ library(MASS)
 res.est  <- stdres(ajuste) 
 #' Para comenzar, haremos un análisis inicial utilizando la función plot de R:
 plot(ajuste)
-#' A primera vista, en el primer gráfico vemos que no se cumple linealidad.
+#' A primera vista, en el primer gráfico vemos que hay una pequeña tendencia.
 #' En el gráfico QQ-plot, que enfrenta los cuantiles teóricos con los residuos estandarizados,
-#' vemos que los residuos se apoyan en la linea, por lo que en principio vemos normalidad.
-#' Hay una pequeña tendencia en el gráfico de homoscedasticidad, por lo que decidimos 
+#' vemos que los residuos se apoyan en la linea, a excepción de las colas, por lo que en 
+#' principio vemos normalidad.
+#' Hay tendencia en el gráfico de homoscedasticidad, por lo que decidimos 
 #' que, en principio, no está presente.
+#' No vemos problema en el gráfico distancia de Cook.
 #' 
 #' - LINEALIDAD:
 scatter.smooth(ajuste$fit, res.est, main="Residuos ~ Ajustados", 
@@ -563,8 +587,7 @@ scatter.smooth(ajuste$fit, res.est, main="Residuos ~ Ajustados",
                bg = "green", cex.lab=1.5, cex=1.4, cex.main=1.5, 
                lpars = list(col = "magenta", lwd = 3) )
 abline(h=0,lty=2,lwd=2)
-#' Como podemos observar en el gráfico, no sería correcto afirmar la linealidad
-#' de los datos, tal y como predecíamos inicialmente.
+#' Como podemos observar en el gráfico, podemos llegar a creer que hay linealidad.
 #' 
 #' - NORMALIDAD:
 par(mfrow=c(1,3))
@@ -592,13 +615,14 @@ par(mfrow=c(1,1))
 #' Analíticamente, aplicaremos los siguientes test:
 #' 
 library(nortest)
-lillie.test(res.est) 
-cvm.test(res.est)    
-ad.test(res.est)     
-shapiro.test(res.est)
+lillie.test(res.est) # p-value = 0.2518
+cvm.test(res.est) # p-value = 0.03189  
+ad.test(res.est) #p-value = 0.03389
+shapiro.test(res.est) # p-value = 0.06684
 #'
-#' Todos los test dan un p-valor muy elevado, por lo que deducimos que en nuestros 
-#' datos se cumple la hipótesis de normalidad.
+#' Con un 5% de significación, los test que afirman normalidad son el test de Lilliefors 
+#' y es el test de shapiro,que se corresponde con el test más potente de todos para n > 50. 
+#' Como tenemos 203 observaciones, decidimos fiarnos de este test y afirmar normalidad.
 #'
 #' -ALEATORIEDAD:
 acf(res.est, lag.max = 10, type = "correlation")$acf
@@ -609,8 +633,8 @@ acf(res.est, lag.max = 10, type = "correlation")$acf
 #' Comenzaremos con la prueba de Ljung-Box:
 Box.test(res.est, lag = 5, type = "Ljung-Box")	
 #' Los datos son normales, por lo que podemos fiarnos del resultado de este test.
-#' Se obtiene un p-valor no muy grande, lo cual indica que no hay autocorrelaciones
-#' demasiado elevadas. Esto nos lleva a que hay aleatoriedad.
+#' Se obtiene un p-valor de 0.3688, lo cual nos lleva a aceptar la hipótesis nula
+#' y a afirmar que hay aleatoriedad.
 
 #' Comprobaremos también el resulta de la prueba de rachas para aleatoriedad:
 library(tseries)  
@@ -624,7 +648,7 @@ runs.test(as.factor(sign(res.est)))
 #' 
 #' Para ello, utilizamos el test de Breusch-Pagan
 library(lmtest)
-bptest(ajuste) # p-valor muy elevado
+bptest(ajuste) # p-valor muy bajo
 plot(ajuste, which=3)
 #'
 #'Tanto con el test de Breusch-Pagan cómo con el gráfico de los residuos podemos 
