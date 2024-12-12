@@ -476,6 +476,7 @@ anova(ajuste, MOD_FULL)
 #' que incluya interacción es mejor que nuestro modelo completo.
 #' 
 #' Comenzamos definiendo este modelo, con todas las interacciones posibles:
+ajuste_completo <- glm(Proximidad~., data = Oro, family = "binomial")
 ajuste.i <- update(ajuste_completo,.~.^3, family=binomial, data=Oro)
 summary(ajuste.i)
 #' Ningún coeficiente es significativo, por lo que consideramos que esto se 
@@ -634,13 +635,14 @@ predict(ajuste, newdata = new.dat, interval="confidence", level = 0.95)
 predict(ajuste, newdata = new.dat, interval="prediction", level = 0.95)
 #' 
 rm(list = ls())
-#'
+par(mfrow=c(1,1))
 #'
 #' \newpage
 #' # **Regresión Logística**
 #' 
 #' - Antes de empezar, cargamos los datos *Oro.rda*
 load("Datos/Oro.rda")
+Oro <- Oro
 #'
 #'
 #' ## **1.** Análisis descriptivo
@@ -803,7 +805,6 @@ vif(ajuste_completo)
 #' ya que esta medida de selección de modelos 'castiga' a modelos con un número
 #' elevado de variables:
 library(bestglm)
-help(bestglm)
 M1.exh.AIC <- bestglm(Oro, IC = "BIC", family = binomial, 
                       method = "exhaustive")
 M1.exh.AIC$Subsets
@@ -823,7 +824,7 @@ summary(ajuste_sin_corredor)
 #' que incluya interacción es mejor que nuestro modelo completo.
 #' 
 #' Comenzamos definiendo este modelo, con todas las interacciones posibles:
-ajuste.i <- update(ajuste_completo,.~.^3, family=binomial, data=Oro)
+ajuste.i <- update(ajuste_completo, .~.^3, family=binomial, data=Oro)
 summary(ajuste.i)
 #' Ningún coeficiente es significativo, por lo que consideramos que esto se 
 #' puede deber a la presencia de multicolinealidad debido a las interacciones.
@@ -831,29 +832,49 @@ summary(ajuste.i)
 #' Decidimos hacer una selección de variables, por si alguna interacción
 #' entre variables originales resultase significativa. La haremos igual
 #' que en el apartado anterior: 
+M0 <- update(ajuste_completo, Proximidad~1)
 step(M0, direction="forward", trace=1,
      scope = list(lower=M0,upper=ajuste.i))
 #' Finalmente, vemos que en este caso, la interacción de las variables
 #' no aporta nada a nuestro ajuste.
 #' 
+ajuste <- ajuste_sin_corredor
 #' 
 #' ## **7.** Inferencia
 #' 
-ajuste <- ajuste_sin_corredor
-summary(ajuste)
+#' Empezamos la inferencia haciendo los intervalos de confianza para los parámetros.
+#' Haremos los intervalos basados en las sd de las pruebas de Wald y en los cuantiles de una normal:
+confint.default(ajuste)
 #' 
 #' Teniendo en cuenta la ecuación \ref{logit}, los coeficientes ajustados y las
-#' variables significativas, el modelo quedaría como en la equación \ref{adjmodel}
+#' variables significativas, el modelo quedaría como en la ecuación \ref{adjmodel}
 #' 
 #' \begin{equation} \label{adjmodel}
 #' ln( \frac {\hat{p}} {1-\hat{p}} ) = \hat\eta = -4.9664 + 1.2490 As + 0.9235 Sb 
 #' \end{equation}
 #' 
-#' Empezamos la inferencia haciendo los intervalos de confianza para los parámetros.
-#'  Haremos los intervalos basados en las sd de las pruebas de Wald y en los cuantiles de una normal:
-confint.default(ajuste)
-#'
-#'INTERPRETAR EN CASA
+#' 
+#' Para la interpretación de los coeficientes del modelo ajustado utilizaremos
+#' los odds, que calcularemos a partir de los valores que devuelve el `summary()`
+#' del ajuste:
+( estimates <- summary(ajuste)$coef )
+logits_ajuste <- estimates[1:3]
+#' Aquí podemos observar que el odds de las respuestas cuando $\beta_j = 0$,
+#' para $j \in \{1,\ldots,k\}$, tiene un valor de $e^{-4.9663844} = 0.006968297$,
+#' que indica que el cociente $\frac{p}{1-p}$ tiene una probabilidad de 0.00697:1
+#' de estar próximo a un yacimiento de oro cuando la concentración de Arsénico
+#' y antimonio es nula.
+#'  
+#' En cuanto a los coeficientes de las variables `As` y `Sb`, indican un incremento
+#' multiplicativo del odds de $e^{1.2490491} = 3.487025$ y $e^{0.9234717} = 2.518017$
+#' respectivamente, cuando el resto de las variables se mantiene constante.
+#' 
+#' O lo que es lo mismo, el valor de los logits cuando $\beta_j = 0$, para
+#' $j \in \{1,\ldots,k\}$ es de -4.9663844, que un incremento de una unidad en
+#' `As` representa un cambio en los logits de 1.2490491 y que un incremento
+#' de una unidad en `Sb` representa un cambio en los logits de 0.9234717
+#' (manteniendo) el resto de las variables constantes.
+#' 
 #' 
 #' ## **8.** Estimación media y probabilidad condicionada
 #' 
@@ -866,7 +887,7 @@ new <- with(Oro, data.frame(As = mean(As), Sb = mean(Sb)))
 p_est_proximidad <- predict(ajuste, newdata = new, 
                           type = "response")
 cbind(new,p_est_proximidad)
-#'
+#' 
 #' Para obtener los intervalos de confianza para estas predicciones, utilizaremos 
 #' la siguiente función proporcionada en el Script de R Logísitica:
 #' 
@@ -956,3 +977,4 @@ summary(im)
 #' {9, 39, 52} parecen influyentes.
 #' 
 #' Con respecto a la distancia de Cook, vemos que las observaciones
+#' 
