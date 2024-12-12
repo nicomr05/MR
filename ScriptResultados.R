@@ -396,27 +396,35 @@ library(psych)
 pairs.panels(OzonoLA, smooth = TRUE, density=TRUE, digits = 2, 
              ellipses=TRUE, method="pearson", pch = 20, 
              lm=TRUE, cor=TRUE)
-cor(OzonoLA)
+COR <- cor(OzonoLA)
+maxima_cor <- max(COR[COR!=1])
+minima_cor <- sqrt(min(COR^2))
+#' Observamos que tenemos correlaciones muy altas y otras bajas, por lo que creemos
+#' que estamos ante un caso de posible multicolinealidad.
+#' 
 #' - Correlaciones parciales:
-partial.r(OzonoLA)
+PAR <- partial.r(OzonoLA)
+maxima_cor <- max(PAR[PAR!=1])
+minima_cor <- sqrt(min(PAR^2))
+#' Vemos que ya no hay valores tan elevados de correlaciones parciales. Estamos ante un caso
+#' de multicolinealidad, ya que las correlaciones parciales son menores que las bivariantes.
 #' 
 #' ## **3.** Modelo matemático
 #' \begin{equation} \label{linearmodel}
 #' \mathbb{E}(\vec{Y}|\boldsymbol{X}) = \beta_0 + \sum_{i=1}^{n}\beta_iX_{ij}
 #' \end{equation}
 MOD_FULL <- lm(Ozono~., data=OzonoLA)
-MOD_FULL
 coef(MOD_FULL)
 #' Ozono_i = 55.428 - 0.343*Mes_i* + 0.012*Diames_i* - 0.047*DiaSemana_i* - 0.0133*Pres_Alt_i*
 #' - 0.096*Vel_Viento_i* + 0.088*Humedad_i* + 0.1366*T_Sandburg_i* + 0.5598*T_ElMonte_i* 
 #' - 0.0006*Inv_Alt_b_i* + 0.0004*Grad_Pres_i* - 0.124*Inv_T_b_i* - 0.005*Visibilidad_i*
 #' 
 #' Suma de residuos al cuadrado media:
-( MSSR <- summary(MOD_FULL)$sigma^2 )
+MSSR <- summary(MOD_FULL)$sigma^2 
 #' Grados de libertad de los residuos:
-( gl.R <- MOD_FULL$df )
+gl.R <- MOD_FULL$df 
 #' Número de parámetros:
-( gl.E <- MOD_FULL$rank )
+gl.E <- MOD_FULL$rank 
 #'
 #'
 #' ## **4.** Análisis de multicolinealidad 
@@ -536,24 +544,29 @@ par(mfrow=c(1,1))
 #'
 #' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
 #' 
-#' ## **9.** Análisis de residuos modelo seleccionado 
+#' ## **9.** Análisis de residuos modelo seleccionado
+#'  
 #' Para realizar el análisis de los residuos usaremos los residuos estandarizados
 library(MASS)
 res.est  <- stdres(ajuste) 
-#' - Linealidad:
+#' Para comenzar, haremos un análisis inicial utilizando la función plot de R:
+plot(ajuste)
+#' A primera vista, en el primer gráfico vemos que no se cumple linealidad.
+#' En el gráfico QQ-plot, que enfrenta los cuantiles teóricos con los residuos estandarizados,
+#' vemos que los residuos se apoyan en la linea, por lo que en principio vemos normalidad.
+#' Hay una pequeña tendencia en el gráfico de homoscedasticidad, por lo que decidimos 
+#' que, en principio, no está presente.
+#' 
+#' - LINEALIDAD:
 scatter.smooth(ajuste$fit, res.est, main="Residuos ~ Ajustados", 
                xlab="Ajustados",ylab="Residuos", pch = 21, 
                bg = "green", cex.lab=1.5, cex=1.4, cex.main=1.5, 
                lpars = list(col = "magenta", lwd = 3) )
 abline(h=0,lty=2,lwd=2)
-#' Como podemos observar en el gráfico no sería correcto afirmar linealidad
+#' Como podemos observar en el gráfico, no sería correcto afirmar la linealidad
+#' de los datos, tal y como predecíamos inicialmente.
 #' 
-#' -Aleatoriedad:
-acf(res.est, lag.max = 10, type = "correlation")$acf  
-#' Como podemos ver en la matriz de correlaciones, las correlaciones entre un dato
-#' y el anterior son muy bajas, con lo cual, si sería correcto asimir aleatoriedad,
-#' 
-#' - Normalidad:
+#' - NORMALIDAD:
 par(mfrow=c(1,3))
 
 hist(res.est, breaks=6,freq=FALSE, main = "", xlab="Residuos", cex.lab=1.4, 
@@ -573,25 +586,45 @@ polygon(density(res.est,bw=0.4), col="lightblue")
 curve( dnorm(x), col="magenta", lwd=3, add=TRUE)
 par(mfrow=c(1,1))
 #' 
-#' Gráficamente podemos deducir que nuestros datos no siguen exactamente una distribución
-#' normal pero si muy semejante.
+#' Gráficamente, tal y como indicaba la salida del plot, nuestros datos parecen seguir 
+#' claramente una distribución normal.
+#' 
+#' Analíticamente, aplicaremos los siguientes test:
 #' 
 library(nortest)
-lillie.test(res.est)  
+lillie.test(res.est) 
 cvm.test(res.est)    
 ad.test(res.est)     
 shapiro.test(res.est)
 #'
-#'Analíticamente se confirma la teoría anterior ya que los p-vlores, en todos los 
-#'tests nos dan lo suficientemente grandes cómo para no rechazar la hipótesis nula,
-#'la cual se refiere a la normalidad.
+#' Todos los test dan un p-valor muy elevado, por lo que deducimos que en nuestros 
+#' datos se cumple la hipótesis de normalidad.
 #'
-#'- Homoscedasticidad:
+#' -ALEATORIEDAD:
+acf(res.est, lag.max = 10, type = "correlation")$acf
+#' Como podemos ver en el grafico, no vemos una clara tendencia, por lo que se
+#' puede asumir aleatoriedad. No obstante, vamos a aplicar los test adecuados para
+#' confirmarlo.
+#' 
+#' Comenzaremos con la prueba de Ljung-Box:
+Box.test(res.est, lag = 5, type = "Ljung-Box")	
+#' Los datos son normales, por lo que podemos fiarnos del resultado de este test.
+#' Se obtiene un p-valor no muy grande, lo cual indica que no hay autocorrelaciones
+#' demasiado elevadas. Esto nos lleva a que hay aleatoriedad.
+
+#' Comprobaremos también el resulta de la prueba de rachas para aleatoriedad:
+library(tseries)  
+runs.test(as.factor(sign(res.est)))	   
+#' Obtenemos el mismo resultado.
+#' 
+#'- HOMOSCEDASTICIDAD:
 #'
+#' El contraste a llevar a cabo es el siguiente:
 #' H0: sigma^2=cte  vs H1: sigma^2!=cte
-#' Test de Breusch-Pagan
+#' 
+#' Para ello, utilizamos el test de Breusch-Pagan
 library(lmtest)
-bptest(ajuste) 
+bptest(ajuste) # p-valor muy elevado
 plot(ajuste, which=3)
 #'
 #'Tanto con el test de Breusch-Pagan cómo con el gráfico de los residuos podemos 
@@ -599,30 +632,63 @@ plot(ajuste, which=3)
 #'
 #' ## **10.** Análisis de influencia modelo seleccionado
 #' 
+#' En este apartado chequearemos si hay datos influyentes en nuestro ajuste.
+#' Para ello, comenzamos utilizando la siguiente función de R:
 influencia <- influence(ajuste)
 #' 
 #' - Leverages:
-( lev <- influencia$hat )
+#' Los leverages nos indican en que tanto nuestros datos son extremos con respecto
+#' a las explicativas:
+lev <- influencia$hat 
 plot(lev, xlab = "Indice en la muestra", ylab = "Leverage", 
      cex = 1.2, pch=19, col=4, cex.lab=1.4)
-#' 
+#' También es útil la salida del siguiente gráfico:
+plot(ajuste,which=5)
+
 #' - Distancias de Cook:
+#' Los leverages nos indican cómo b¡varía el vector de betas o las predicciones
+#' con y sin el i-ésimo dato muestral.
 cooks.distance(ajuste)
+#' Se recomienda examinar los datos cuya distancia de cook supera 4/(n-k-1), 
+#' con k el número de explicativas. En nuestro caso, k = 5
+which(cooks.distance(ajuste)>4/(length(OzonoLA)-5-1))
+# Vemos que la distancia de Cook de ninguna observación supera ese valor.
 plot(ajuste,which=4)
+#' En el gráfico observamos que hay tres observaciones {11, 34, 130} con una distancia de 
+#' Cook elevada, mayor que la del resto de observaciones.
 #' 
 #' - DFFITs
+#' Los DFFITs nos indican como varía la predicción del i-ésimo dato con y sin él.
 DFFITs <- dffits(ajuste)
+#' Se consideran influyentes los datos que cumplan |DFFITs| > 2*sqrt((k+1)/(n-k-1)):
+which(abs(DFFITs) > 2*sqrt(5+1/(length(OzonoLA)-5-1)))
+#' De nuevo, ninguna observación sobrepasa este valor.
 #' 
 #' - DFBETAs
+#' Los DFBETA nos indican en qué medida varía la estimación del j-ésimo coeficiente
+#' con y sin el i-ésimo dato muestral.
 DFBETAS <- dfbeta(ajuste) 
+# Graficamos el resultadp:
 par(mfrow = c(2,1), pch=19, col=1, cex.lab = 1.5, cex.axis = 1.5)
 plot(dfbeta(ajuste)[,1],xlab = "Indice omitido", 
      ylab = expression(DFBETA[0]),col=4)
 plot(dfbeta(ajuste)[,2], xlab = "Indice omitido", col=4,
      ylab = expression(DFBETA[1]))
+plot(dfbeta(ajuste)[,3],xlab = "Indice omitido", 
+     ylab = expression(DFBETA[3]),col=4)
+plot(dfbeta(ajuste)[,4], xlab = "Indice omitido", col=4,
+     ylab = expression(DFBETA[4]))
+plot(dfbeta(ajuste)[,5], xlab = "Indice omitido", col=4,
+     ylab = expression(DFBETA[5]))
 par(mfrow = c(1,1))
 #' 
-#' 
+#' También se pueden utilizar los DFBETA estandarizados:
+DFBETAs <- dfbetas(ajuste)
+#' Se consideran influyentes los datos que cumplen |DFBETAs| > 2*sqrt(n):
+which(abs(DFBETAs) > 2*sqrt(length(OzonoLA)), arr.ind = TRUE)
+#' De nuevo vemos que no hay datos que cumplan esta condición.
+#'
+#'
 #' ## **11.** Estimación media condicionada y predicción 
 #' Finalmente, obtengamos el intervalo de confianza y de predicción para el nivel 
 #' de ozono medio al 95% de confianza con el modelo seleccionado para cada mes con 
@@ -826,18 +892,17 @@ summary(ajuste_sin_corredor)
 #' Comenzamos definiendo este modelo, con todas las interacciones posibles:
 ajuste.i <- update(ajuste_completo, .~.^3, family=binomial, data=Oro)
 summary(ajuste.i)
-#' Ningún coeficiente es significativo, por lo que consideramos que esto se 
-#' puede deber a la presencia de multicolinealidad debido a las interacciones.
-#' 
-#' Decidimos hacer una selección de variables, por si alguna interacción
-#' entre variables originales resultase significativa. La haremos igual
-#' que en el apartado anterior: 
+#' Ningún coeficiente es significativo. No obstante, creemos que esto puede deberse 
+#' a la presencia de multicolinealidad, así que decidimos hacer una selección
+#' de variables:
+#' La haremos siguiendo el mismo método que en el apartado anterior: 
 M0 <- update(ajuste_completo, Proximidad~1)
 step(M0, direction="forward", trace=1,
      scope = list(lower=M0,upper=ajuste.i))
 #' Finalmente, vemos que en este caso, la interacción de las variables
 #' no aporta nada a nuestro ajuste.
 #' 
+#' Definimos el ajuste con el que nos quedamos finalmente:
 ajuste <- ajuste_sin_corredor
 #' 
 #' ## **7.** Inferencia
@@ -879,11 +944,12 @@ logits_ajuste <- estimates[1:3]
 #' ## **8.** Estimación media y probabilidad condicionada
 #' 
 #' Haremos los intervalos de confianza y de probabilidad manteniendo las dos 
-#' variables en su media:
+#' variables en su media.
 #' 
+#' Primero, guardamos los nuevos datos en un data.frame:
 new <- with(Oro, data.frame(As = mean(As), Sb = mean(Sb)))
 #' 
-#' Utilizamos predict para la predicción estimada:
+#' Utilizamos predict para obtener la predicción estimada:
 p_est_proximidad <- predict(ajuste, newdata = new, 
                           type = "response")
 cbind(new,p_est_proximidad)
@@ -913,7 +979,124 @@ est.media.cond.CI(ajuste, newdata = new)
 #'
 #' ## **9.** Bondad del ajuste
 #' 
+#' ## Test de razón de verosimilitudes
+#' 
+#' Empezamos la inferencia con el test de razón de verosimilitudes, que chequea
+#' si la diferencia entre la deviance de nuestro modelo y la deviance nula es muy
+#' elevada.
+#' 
+Dev <- summary(ajuste)$deviance
+Dev.0 <- summary(ajuste)$null.deviance 
+with(rlog.1, 
+     pchisq(null.deviance - deviance, 
+            df.null - df.residual, lower.tail = FALSE)) 
+#' El test resulta significativo, por lo que tenemos que la diferencia es elevada.
+#' 
+#' ## R^2 de McFadden
+#' 
+#' Seguimos con el R^2 de McFadden, que se entiende como la verosimilitud explicada 
+#' por el modelo respecto a la verosimilitud del modelo nulo. Se calcula del siguiente modo:
+R_2 <- 1-Dev/Dev.0
+#' Vemos que es bastante elevado (79.13%), por lo que estamos ante un buen ajuste.
+#' 
+#' 
+#' ## Prueba de Hosmer-Lemeshown
+#' 
+#' Seguimos con la prueba de Hosmer-Lemeshown. Esta prueba, tras ordenar las observaciones
+#' en orden creciente según su probabilidad estimada, divide la muestra en G grupos 
+#' homogéneos entre sí para aplicar una prueba basada en la Chi-Cuadrado de Pearson,
+#' que compara las frecuencias observadas de 1's con las frecuencias esperadas.
+#' 
+#' Esta prueba toma por defecto 10 grupos:
+library(generalhoslem)
+a <- logitgof(D$admit, fitted(rlog.1)) 
+#' Resulta un p-valor muy elevado, por lo que aceptamos la hipótesis nula y concluímos
+#' que nuestro modelo se ajusta a la realidad.
+#' 
+#' No obstante, probaremos con distintos números de grupos para ver si el resultado
+#' converge, teniendo en cuenta que el número de grupos tiene que ser mayor que el
+#' de explicativas. Probaremos con los siguientes números de grupos:
+( logitgof(D$admit, fitted(rlog.1), g=5))
+( logitgof(D$admit, fitted(rlog.1), g=20))
+#' Obtenemos de nuevo un p-valor muy elevado, por lo que volvemos a concluír que 
+#' nuestro modelo se ajusta a la realidad.
+#' 
+#' 
+#' ## Matriz de confusión
+#' 
+#' La matriz de conclusión nos muestra de una forma visual cómo de bien predice 
+#' nuestro ajuste, mostrando el número de predicciones correctas y falsas.
+#' Estableceremos como umbral de decisión entre éxito y fracaso hat(p)=0.5, el
+#' umbral natural. Así, las observaciones con hat(p)>0.5 serán éxitos, y en caso 
+#' contrario se considerarán fracasos. Obtenemos la matriz del siguiente modo:
+pred <- ifelse(test = ajuste$fitted.values > 0.5, 
+               yes = 1, no = 0)
+m_confusion <- xtabs(~ pred + Oro$Proximidad) 
+#' 
+#' # Falsos positivos: No admitidos predichos como admitidos
+FP <- 1
+# Verdaderos positivos: Admitidos predichos como admitidos
+VP <- 26
+# Falsos negativos: Admitidos predichos como no admitidos
+FN <- 2
+# Verdaderos negativos: No admitidos predichos como no admitidos
+VN <- 35
 #'
+#' Ahora ya podemos calcular la especificidad, la sensibilidad y la tasa de 
+#' clasificación correcta o precisión de nuestro ajuste:
+#' 
+#' ESPECIFICIDAD: Proporción de no admitidos bien predichos:
+100*VN/(FP+VN)
+#' Porcentaje muy elevado, por lo que tenemos una muy buena capacidad de predecir 
+#' correctamente los que no serán admitidos
+#' 
+#' SENSIBILIDAD: Proporción de admitidos bien predichos:
+100*VP/(FN+VP)
+#' Porcentaje muy elevado, por lo que tenemos una muy buena capacidad de predecir 
+#' correctamente los que serán admitidos
+
+#' Precisión o tasa de clasificación correcta (TCC):
+TCC <- 100* sum(diag(m_confusion))/sum(m_confusion)
+#' De nuevo, porcentaje muy elevado, por lo que nuestro ajuste es muy bueno
+#' a la hora de clasificar individuos.
+#' 
+#' ## ERROR CUADRÁTICO MEDIO
+#' 
+#' Debido a que estas medidas pueden estar sesgadas, decidimos medir el error 
+#' cuadrático medio de predicción por validación cruzada. Lo hacemos del siguiente modo:
+library(boot)
+set.seed(10203)
+ECMP.cv <- cv.glm(Oro,ajuste,K=5)$delta[1]
+#' A partir de este error, podemos calcular de nuevo la tasa de clasificación correcta:
+TCC.cv <- 1-ECMP.cv 
+#' Vemos que empeora un poco, pero seguimos teniendo un muy buen resultado.
+#' 
+#' 
+#' ## Cómputo de la curva ROC y del AUC
+#' 
+#' La curva de ROC nos muestra un gráfico que enfrenta la especificidas y la
+#' sensibilidad del ajuste. Para distintos puntos de corte, calcula la especificidad
+#' y sensibilidad, y las compara.
+#' Hay que tener en cuenta que un aumento de sensibilidad conlleva a una disminución
+#' de la especificidad y viceversa.
+#' Calculamos la curva del siguiente modo:
+pred <- predict(ajuste,type="response")
+library(pROC)
+curva.roc <- roc(Oro$Proximidad,pred)
+par(mfrow=c(1,1))
+plot(curva.roc)
+#' El peor ajuste caería en la línea, y el mejor ajuste pasaría por el punto (1,1).
+#' Como se puede ver en nuestro gráfico, pasa por el punto (1,1), por lo que,
+#' como ya vimos en el apartado anterior, estamos ante un ajuste prácticamente 
+#' perfecto para clasificar.
+#'
+#' Para calcular la capacidad predictiva, calculamos el área bajo la curva (AUC).
+#' Buscamos una curva con un área elevada. La calculamos del siguiente modo:
+curva.roc$auc
+#' Obtenemos un área muy elevada, por lo que se vuelve a confirmar que la capacidad 
+#' predictiva de nuestro ajuste es muy buena, y estamos ante un muy buen modelo. 
+
+
 #'## **10.** Análisis de residuos
 #'
 #' El modelo de regresión logísitica tiene 3 hipótesis estructurales:
@@ -949,7 +1132,6 @@ car::avPlots(ajuste,terms=~.)
 #' Podemos ver que prácticamente los datos están en torno a 0.
 #' El problema con las rectas es que, debido a la presencia de muchos 
 #' datos entre 0 y 10, su pendiente varía mucho.
-#' ACABAR INTERPRETACIÓN
 #' 
 #' También podemos hacer gráficos de residuos parciales, para ver si la falta de 
 #' linealidad es achacable a alguna variable concreta:
@@ -976,5 +1158,10 @@ summary(im)
 #' Con respecto a los leverages de Pregibon, vemos que las observaciones
 #' {9, 39, 52} parecen influyentes.
 #' 
-#' Con respecto a la distancia de Cook, vemos que las observaciones
+#' Con respecto a la distancia de Cook, vemos que las observaciones que tienen mayor 
+#' valor son {9, 34, 39, 47, 52}, pero ninguna parece tener una distancia lo suficientemente
+#' grande como para preocuparse.
+#' 
+#' Finalmente, con respecto a los dffit, vemos que las observaciones {9, 34, 39, 47, 52}
+#' parecen significativas, por lo que su predicción varía con y sin su observación.
 #' 
