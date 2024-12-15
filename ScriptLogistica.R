@@ -81,6 +81,7 @@ boxplot(numericas.oro, horizontal=T, pch=5,
 #' 
 #' Utilizaremos los factores de inflacción de la varianza generalizada, para
 #' ver si nos encontramos con variables correlacionadas:
+library(car)
 vif(ajuste_completo)
 #' COMPLETAR. Los factores de inflacción de la varianza son todos menores que 10,
 #' lo que nos indican que no estamos ante un caso claro de multicolinealidad.

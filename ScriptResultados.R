@@ -397,15 +397,15 @@ pairs.panels(OzonoLA, smooth = TRUE, density=TRUE, digits = 2,
              ellipses=TRUE, method="pearson", pch = 20, 
              lm=TRUE, cor=TRUE)
 COR <- cor(OzonoLA)
-maxima_cor <- max(COR[COR!=1])
-minima_cor <- sqrt(min(COR^2))
+( maxima_cor <- max(COR[COR!=1]) )
+( minima_cor <- sqrt(min(COR^2)) )
 #' Observamos que tenemos correlaciones muy altas y otras bajas, por lo que creemos
 #' que estamos ante un caso de posible multicolinealidad.
 #' 
 #' - Correlaciones parciales:
 PAR <- partial.r(OzonoLA)
-maxima_cor <- max(PAR[PAR!=1])
-minima_cor <- sqrt(min(PAR^2))
+( maxima_cor <- max(PAR[PAR!=1]) )
+( minima_cor <- sqrt(min(PAR^2)) )
 #' Vemos que ya no hay valores tan elevados de correlaciones parciales. Estamos ante un caso
 #' de multicolinealidad, ya que las correlaciones parciales son menores que las bivariantes.
 #' 
@@ -420,11 +420,11 @@ coef(MOD_FULL)
 #' - 0.0006*Inv_Alt_b_i* + 0.0004*Grad_Pres_i* - 0.124*Inv_T_b_i* - 0.005*Visibilidad_i*
 #' 
 #' Suma de residuos al cuadrado media:
-MSSR <- summary(MOD_FULL)$sigma^2 
+( MSSR <- summary(MOD_FULL)$sigma^2 )
 #' Grados de libertad de los residuos:
-gl.R <- MOD_FULL$df 
+( gl.R <- MOD_FULL$df )
 #' Número de parámetros:
-gl.E <- MOD_FULL$rank 
+( gl.E <- MOD_FULL$rank )
 #'
 #'
 #' ## **4.** Análisis de multicolinealidad 
@@ -438,7 +438,7 @@ summary(MOD_FULL)
 #' Para ello, utilizaremos la librería "mctest", que proporciona un análisis completo 
 #' de multicolinealidad:
 library(mctest)
-mctest(MOD_FULL, type="o")  
+mctest(MOD_FULL, type="o")
 #' Este test proporciona 6 medidas, de las cuales 4 indican que estamos ante un caso
 #' en el que la multicolinealidad está presente.
 #'
@@ -454,8 +454,8 @@ mctest(MOD_FULL, type="o")
 #' del proceso. 
 #'
 #' Primero, definimos el modelo con solo el intercept.
-Mod_NULL <- lm(Ozono ~ 1, data = OzonoLA) 
-#' Ahora, aplicaremos la siguiente función para obtener el modelo óptimo:
+Mod_NULL <- lm(Ozono ~ 1, data = OzonoLA)
+#' Ahora, aplicaremos la función `step()` para obtener el modelo óptimo:
 stepMod <- step(Mod_NULL, direction = "both", trace = 1,
                 scope = list(lower = Mod_NULL, 
                              upper = MOD_FULL) ) 
@@ -489,8 +489,10 @@ summary(ajuste.i)
 #' Ninguna variable resulta significativa. Sin embargo, haremos una selección
 #' secuencial para comprobar que ninguna interacción es significativa:
 ajuste.i.correcto <-step(Mod_NULL, direction = "both", trace = 1,
-                         scope = list(lower = Mod_NULL, 
+                         scope = list(lower = Mod_NULL,
                                       upper = ajuste.i) )
+#' Que resulta en el modelo:
+ajuste.i.correcto
 #' Ahora comprobaremos utilizando un anova de modelos anidados si el modelo con 
 #' alguna interacción es mejor que el modelo seleccionado en el apartado anterior:
 anova(ajuste, ajuste.i.correcto) 
@@ -499,37 +501,31 @@ anova(ajuste, ajuste.i.correcto)
 ajuste <- ajuste.i.correcto
 summary(ajuste)
 #' 
-#' ¿Qué pasa si quitamos 'Mes' y 'T_Sandburg'?
-ajuste_sin_m_t_sand <- update(ajuste,.~.-Mes-T_Sandburg)
+#' ¿Qué pasa si quitamos `Mes`?
+ajuste_sin_mes <- update(ajuste,.~.-Mes)
+summary(ajuste_sin_mes)
+#' ¿Qué pasa si quitamos `T_Sandburg`?
+ajuste_sin_m_t_sand <- update(ajuste,.~.-Mes -T_Sandburg)
 summary(ajuste_sin_m_t_sand)
-#' No vemos una diferencia significativa en el summary. Vamos a comparar el AIC 
-#' y BIC del modelo con y sin:
+#' ¿Qué pasa si quitamos `T_ElMonte:Mes `?
+ajuste_sin_m_t_sand_inter <- update(ajuste,.~.-Mes -T_Sandburg -T_ElMonte:Mes)
+summary(ajuste_sin_m_t_sand_inter)
 #' 
-AIC(ajuste)
-AIC(ajuste_sin_m_t_sand) # menor
-
-BIC(ajuste)
-BIC(ajuste_sin_m_t_sand) # menor
-#'
+#' Obtenemos el modelo:
+( ajuste <- ajuste_sin_m_t_sand_inter )
+#' 
+#' 
 #' ## **7.** Inferencia modelo 
 #' 
 #' Ahora ya podemos comenzar la inferencia.
 summary(ajuste)
-#' Las únicas variables que parecen ser significativas son Mes, Humedad y T_ElMonte.
-#' También podemos considerar que son bastante significativas, pero no tanto, las 
-#' variables T_Sandburg y Pres_Alt. Por otra parte, según el coeficiente de bondad, 
-#' con este ajuste podemos explicar el 73,04% de la variabilidad de los datos. Por último, 
-#' gracias a la última linea del summary deducimos que es mejor este ajuste en comparación 
-#' al modelo que contiene únicamente el intercept, debido al p-valor < 2.2e-16. 
 #' 
-summary(ajuste)$coefficients
-#' 
-#' - Intervalos de confianza:
+#' - Intervalos de confianza para los coeficientes:
 confint(ajuste,level=0.95) 
-#' Para sigma^2:
+#' - Intervalos de confianza para $\sigma^2$:
 ( LS.IC.var <- gl.R * MSSR / qchisq(p=0.05,df=gl.R) )
 #' 
-#'Las elipses al 80, 90 y 95% de confianza para el vector de coeficientes:
+#'Las elipses al 80%, 90% y 95% de confianza para el vector de coeficientes:
 library(car)
 confidenceEllipse(model=ajuste, which.coef=c(5,3),
                   levels=c(0.80,0.90,0.95))
@@ -559,12 +555,13 @@ errores <- cv_k3_MS$cvpred - cv_k3_MS$Ozono # predicho por cv - predicción real
 #'
 #' Finalmente, para MC:
 set.seed(5198) 
-cv_k3_MC <- cv.lm(data=OzonoLA,form.lm=formula(MC),m=length(OzonoLA))   
+cv_k3_MC <- cv.lm(data=OzonoLA,form.lm=formula(MC),m=length(OzonoLA))
 errores <- cv_k3_MC$cvpred - cv_k3_MC$Ozono
 ( error_cv_k3_MC <- sqrt(mean(errores^2)) )
-par(mfrow=c(1,1)) 
-#'
+par(mfrow=c(1,1))
+#' 
 #' Obtenemos un comportamiento mejor con el MS que con MC, pues tenemos un menor error.
+#' 
 #' 
 #' ## **9.** Análisis de residuos modelo seleccionado
 #'  
@@ -573,7 +570,7 @@ library(MASS)
 res.est  <- stdres(ajuste) 
 #' Para comenzar, haremos un análisis inicial utilizando la función plot de R:
 plot(ajuste)
-#' A primera vista, en el primer gráfico vemos que hay una pequeña tendencia.
+#' A primera vista, en el primer gráfico vemos linealidad.
 #' En el gráfico QQ-plot, que enfrenta los cuantiles teóricos con los residuos estandarizados,
 #' vemos que los residuos se apoyan en la linea, a excepción de las colas, por lo que en 
 #' principio vemos normalidad.
@@ -581,7 +578,7 @@ plot(ajuste)
 #' que, en principio, no está presente.
 #' No vemos problema en el gráfico distancia de Cook.
 #' 
-#' - LINEALIDAD:
+#' ### LINEALIDAD:
 scatter.smooth(ajuste$fit, res.est, main="Residuos ~ Ajustados", 
                xlab="Ajustados",ylab="Residuos", pch = 21, 
                bg = "green", cex.lab=1.5, cex=1.4, cex.main=1.5, 
@@ -589,7 +586,7 @@ scatter.smooth(ajuste$fit, res.est, main="Residuos ~ Ajustados",
 abline(h=0,lty=2,lwd=2)
 #' Como podemos observar en el gráfico, podemos llegar a creer que hay linealidad.
 #' 
-#' - NORMALIDAD:
+#' ### NORMALIDAD:
 par(mfrow=c(1,3))
 
 hist(res.est, breaks=6,freq=FALSE, main = "", xlab="Residuos", cex.lab=1.4, 
@@ -615,16 +612,14 @@ par(mfrow=c(1,1))
 #' Analíticamente, aplicaremos los siguientes test:
 #' 
 library(nortest)
-lillie.test(res.est) # p-value = 0.2518
+lillie.test(res.est) # p-value = 0.6773
 cvm.test(res.est) # p-value = 0.03189  
 ad.test(res.est) #p-value = 0.03389
 shapiro.test(res.est) # p-value = 0.06684
 #'
-#' Con un 5% de significación, los test que afirman normalidad son el test de Lilliefors 
-#' y es el test de shapiro,que se corresponde con el test más potente de todos para n > 50. 
-#' Como tenemos 203 observaciones, decidimos fiarnos de este test y afirmar normalidad.
+#' Con un 5% de significación, todos los test nos indican que existe normalidad.
 #'
-#' -ALEATORIEDAD:
+#' ### ALEATORIEDAD:
 acf(res.est, lag.max = 10, type = "correlation")$acf
 #' Como podemos ver en el grafico, no vemos una clara tendencia, por lo que se
 #' puede asumir aleatoriedad. No obstante, vamos a aplicar los test adecuados para
@@ -633,7 +628,7 @@ acf(res.est, lag.max = 10, type = "correlation")$acf
 #' Comenzaremos con la prueba de Ljung-Box:
 Box.test(res.est, lag = 5, type = "Ljung-Box")	
 #' Los datos son normales, por lo que podemos fiarnos del resultado de este test.
-#' Se obtiene un p-valor de 0.3688, lo cual nos lleva a aceptar la hipótesis nula
+#' Se obtiene un p-valor de 0.08347, lo cual nos lleva a aceptar la hipótesis nula
 #' y a afirmar que hay aleatoriedad.
 
 #' Comprobaremos también el resulta de la prueba de rachas para aleatoriedad:
@@ -641,10 +636,19 @@ library(tseries)
 runs.test(as.factor(sign(res.est)))	   
 #' Obtenemos el mismo resultado.
 #' 
-#'- HOMOSCEDASTICIDAD:
+#' ### HOMOSCEDASTICIDAD:
 #'
 #' El contraste a llevar a cabo es el siguiente:
-#' H0: sigma^2=cte  vs H1: sigma^2!=cte
+#' $H0: sigma^2=cte  vs H1: sigma^2!=cte
+#'\[
+#'  \left\{
+#'    \begin{array}{ll}
+#'      H_0:\sigma^2 = cte\\
+#'      H_1:\sigma^2 \neq cte
+#'    \end{array}
+#'  \right.
+#'\]
+#' 
 #' 
 #' Para ello, utilizamos el test de Breusch-Pagan
 library(lmtest)
@@ -684,7 +688,7 @@ plot(ajuste,which=4)
 #' - DFFITs
 #' Los DFFITs nos indican como varía la predicción del i-ésimo dato con y sin él.
 DFFITs <- dffits(ajuste)
-#' Se consideran influyentes los datos que cumplan |DFFITs| > 2*sqrt((k+1)/(n-k-1)):
+#' Se consideran influyentes los datos que cumplan |DFFITs| > $2\sqrt\frac{k+1}{n-k-1}$:
 which(abs(DFFITs) > 2*sqrt(5+1/(length(OzonoLA)-5-1)))
 #' De nuevo, ninguna observación sobrepasa este valor.
 #' 
@@ -1003,7 +1007,7 @@ est.media.cond.CI(ajuste, newdata = new)
 #'
 #' ## **9.** Bondad del ajuste
 #' 
-#' ## Test de razón de verosimilitudes
+#' ### Test de razón de verosimilitudes
 #' 
 #' Empezamos la inferencia con el test de razón de verosimilitudes, que chequea
 #' si la diferencia entre la deviance de nuestro modelo y la deviance nula es muy
@@ -1011,20 +1015,19 @@ est.media.cond.CI(ajuste, newdata = new)
 #' 
 Dev <- summary(ajuste)$deviance
 Dev.0 <- summary(ajuste)$null.deviance 
-with(rlog.1, 
-     pchisq(null.deviance - deviance, 
+with(ajuste, pchisq(null.deviance - deviance, 
             df.null - df.residual, lower.tail = FALSE)) 
 #' El test resulta significativo, por lo que tenemos que la diferencia es elevada.
 #' 
-#' ## R^2 de McFadden
+#' ### R^2 de McFadden
 #' 
 #' Seguimos con el R^2 de McFadden, que se entiende como la verosimilitud explicada 
 #' por el modelo respecto a la verosimilitud del modelo nulo. Se calcula del siguiente modo:
-R_2 <- 1-Dev/Dev.0
+( R_2 <- 1-Dev/Dev.0 )
 #' Vemos que es bastante elevado (79.13%), por lo que estamos ante un buen ajuste.
 #' 
 #' 
-#' ## Prueba de Hosmer-Lemeshown
+#' ### Prueba de Hosmer-Lemeshown
 #' 
 #' Seguimos con la prueba de Hosmer-Lemeshown. Esta prueba, tras ordenar las observaciones
 #' en orden creciente según su probabilidad estimada, divide la muestra en G grupos 
@@ -1033,38 +1036,34 @@ R_2 <- 1-Dev/Dev.0
 #' 
 #' Esta prueba toma por defecto 10 grupos:
 library(generalhoslem)
-a <- logitgof(D$admit, fitted(rlog.1)) 
+logitgof(Proximidad, fitted(ajuste))
 #' Resulta un p-valor muy elevado, por lo que aceptamos la hipótesis nula y concluímos
 #' que nuestro modelo se ajusta a la realidad.
 #' 
 #' No obstante, probaremos con distintos números de grupos para ver si el resultado
 #' converge, teniendo en cuenta que el número de grupos tiene que ser mayor que el
 #' de explicativas. Probaremos con los siguientes números de grupos:
-( logitgof(D$admit, fitted(rlog.1), g=5))
-( logitgof(D$admit, fitted(rlog.1), g=20))
+logitgof(Proximidad, fitted(ajuste), g=5)
+logitgof(Proximidad, fitted(ajuste), g=20)
 #' Obtenemos de nuevo un p-valor muy elevado, por lo que volvemos a concluír que 
 #' nuestro modelo se ajusta a la realidad.
 #' 
 #' 
-#' ## Matriz de confusión
+#' ### Matriz de confusión
 #' 
 #' La matriz de conclusión nos muestra de una forma visual cómo de bien predice 
 #' nuestro ajuste, mostrando el número de predicciones correctas y falsas.
-#' Estableceremos como umbral de decisión entre éxito y fracaso hat(p)=0.5, el
-#' umbral natural. Así, las observaciones con hat(p)>0.5 serán éxitos, y en caso 
+#' Estableceremos como umbral de decisión entre éxito y fracaso $\hat{p}=0.5$, el
+#' umbral natural. Así, las observaciones con $\hat{p}>0.5$ serán éxitos, y en caso 
 #' contrario se considerarán fracasos. Obtenemos la matriz del siguiente modo:
 pred <- ifelse(test = ajuste$fitted.values > 0.5, 
                yes = 1, no = 0)
-m_confusion <- xtabs(~ pred + Oro$Proximidad) 
-#' 
-#' # Falsos positivos: No admitidos predichos como admitidos
-FP <- 1
-# Verdaderos positivos: Admitidos predichos como admitidos
-VP <- 26
-# Falsos negativos: Admitidos predichos como no admitidos
-FN <- 2
-# Verdaderos negativos: No admitidos predichos como no admitidos
-VN <- 35
+( m_confusion <- xtabs(~ pred + Oro$Proximidad) )
+#'
+FP <- 1 # Falsos positivos: No admitidos predichos como admitidos
+VP <- 26 # Verdaderos positivos: Admitidos predichos como admitidos
+FN <- 2 # Falsos negativos: Admitidos predichos como no admitidos
+VN <- 35 # Verdaderos negativos: No admitidos predichos como no admitidos
 #'
 #' Ahora ya podemos calcular la especificidad, la sensibilidad y la tasa de 
 #' clasificación correcta o precisión de nuestro ajuste:
@@ -1080,19 +1079,19 @@ VN <- 35
 #' correctamente los que serán admitidos
 
 #' Precisión o tasa de clasificación correcta (TCC):
-TCC <- 100* sum(diag(m_confusion))/sum(m_confusion)
+100* sum(diag(m_confusion))/sum(m_confusion)
 #' De nuevo, porcentaje muy elevado, por lo que nuestro ajuste es muy bueno
 #' a la hora de clasificar individuos.
 #' 
-#' ## ERROR CUADRÁTICO MEDIO
+#' ## Error cuadrático medio
 #' 
 #' Debido a que estas medidas pueden estar sesgadas, decidimos medir el error 
 #' cuadrático medio de predicción por validación cruzada. Lo hacemos del siguiente modo:
 library(boot)
 set.seed(10203)
-ECMP.cv <- cv.glm(Oro,ajuste,K=5)$delta[1]
+( ECMP.cv <- cv.glm(Oro,ajuste,K=5)$delta[1] )
 #' A partir de este error, podemos calcular de nuevo la tasa de clasificación correcta:
-TCC.cv <- 1-ECMP.cv 
+( TCC.cv <- 1-ECMP.cv )
 #' Vemos que empeora un poco, pero seguimos teniendo un muy buen resultado.
 #' 
 #' 
@@ -1136,7 +1135,7 @@ curva.roc$auc
 res.p <- residuals(ajuste, type="pearson")
 #' Obtención residuos de la Deviance:
 res.d <- residuals(ajuste, type="deviance")
-#'
+#' 
 #' Los estandarizamos:
 #' Residuos Pearson estandarizados:
 res.p.e <- res.p/sqrt(1 - hatvalues(ajuste)) 
@@ -1172,7 +1171,7 @@ crPlots(ajuste)
 plot(ajuste, which = 4)
 #' Vemos 3 observaciones con una distancia de Cook mayor que el resto
 #' de observaciones: {34, 39, 47}
-#'
+#' 
 #' Tal y como haciamos en regresión lineal múltiple, podemos utilizar la siguiente
 #' función de R para obtener las medidas del análisis de influencia automáticamente:
 im <- influence.measures(ajuste)
